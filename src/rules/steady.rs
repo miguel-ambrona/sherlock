@@ -13,7 +13,7 @@ use crate::{
 /// A rule that updates the information on steady pieces: pieces that have
 /// certainly never moved and are still on their starting square.
 /// Steady pieces can be identified through the castling information or by
-/// realizing that a pieces is limited in movement by other steady pieces (e.g.
+/// realizing that a piece is limited in movement by other steady pieces (e.g.
 /// pawns on their relative 2nd rank are steady, thus a white bishop on c1 is
 /// steady if there are white pawns on b2 and d2).
 pub struct SteadyRule {
@@ -80,7 +80,7 @@ pub fn steady_pieces(board: &Board, steady: &BitBoard) -> BitBoard {
             }
         }
 
-        // a king-queen couple sourounded by steady pieces must be steady
+        // a king-queen couple surrounded by steady pieces must be steady
         let couple = MARRIAGE_COUPLE[color.to_index()];
         let cage = MARRIAGE_CAGE[color.to_index()];
         if (cage & steady) == cage && (couple & board.color_combined(color)) == couple {
