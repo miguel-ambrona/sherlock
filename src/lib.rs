@@ -18,9 +18,7 @@
 #![deny(missing_docs)]
 
 mod rules;
-mod squares;
-mod state;
-mod util;
+mod utils;
 
 mod legality;
 pub use crate::legality::*;

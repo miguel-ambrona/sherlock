@@ -3,11 +3,10 @@
 use chess::{BitBoard, Board, CastleRights, Piece, ALL_COLORS, EMPTY};
 use lazy_static::lazy_static;
 
-use super::Rule;
-use crate::{
-    squares::{C1, C2, C7, C8, D1, D2, D7, D8, E1, E2, E7, E8, F1, F2, F7, F8},
-    state::State,
-    util::{bitboard_of_squares, predecessors},
+use super::{Rule, State};
+use crate::utils::{
+    bitboard_of_squares, predecessors, C1, C2, C7, C8, D1, D2, D7, D8, E1, E2, E7, E8, F1, F2, F7,
+    F8,
 };
 
 /// A rule that updates the information on steady pieces: pieces that have
@@ -95,7 +94,7 @@ mod test {
     use std::str::FromStr;
 
     use super::*;
-    use crate::squares::{A1, A6, A8, B2, B7, B8, C6, F3, G1, G2, G7, H1, H2, H3};
+    use crate::utils::{A1, A6, A8, B2, B7, B8, C6, F3, G1, G2, G7, H1, H2, H3};
 
     #[test]
     fn test_steady_pieces() {

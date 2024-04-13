@@ -1,9 +1,6 @@
 use chess::Board;
 
-use crate::{
-    rules::{Rule, SteadyRule},
-    state::State,
-};
+use crate::rules::{Rule, State, SteadyRule};
 
 /// Initialize on the given board all the available rules.
 fn init_rules(board: &Board) -> Vec<Box<dyn Rule>> {
