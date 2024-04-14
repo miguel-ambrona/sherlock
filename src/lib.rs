@@ -1,4 +1,5 @@
 //! # Sherlock
+//!
 //! A chess library oriented to creating and solving chess compositions with
 //! especial emphasis on retrograde analysis.
 //!
