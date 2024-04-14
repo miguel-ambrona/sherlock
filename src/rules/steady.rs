@@ -15,6 +15,7 @@ use crate::utils::{
 /// realizing that a piece is limited in movement by other steady pieces (e.g.
 /// pawns on their relative 2nd rank are steady, thus a white bishop on c1 is
 /// steady if there are white pawns on b2 and d2).
+#[derive(Debug)]
 pub struct SteadyRule {
     steady: BitBoard,
 }
@@ -90,7 +91,7 @@ pub fn steady_pieces(board: &Board, steady: &BitBoard) -> BitBoard {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use std::str::FromStr;
 
     use super::*;
@@ -129,7 +130,6 @@ mod test {
         .for_each(|(fen, assumed_steady, expected_steady)| {
             let board = Board::from_str(fen).expect("Valid Position");
             let assumed_steady = bitboard_of_squares(assumed_steady);
-            println!("{}", steady_pieces(&board, &assumed_steady));
             assert_eq!(
                 steady_pieces(&board, &assumed_steady),
                 bitboard_of_squares(expected_steady) | assumed_steady

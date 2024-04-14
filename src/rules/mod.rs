@@ -40,11 +40,11 @@ impl State {
 
 /// A legality rule, it updates the proof state about the legality of the
 /// position, after deriving new information.
-pub trait Rule {
+pub trait Rule: fmt::Debug {
     /// Initializes the rule state for a given board.
     fn new(board: &Board) -> Self
     where
-        Self: Sized;
+        Self: Sized + fmt::Debug;
 
     /// Check whether or not it makes sense to apply the rule (we do not want to
     /// apply a rule if we are sure it will not derive any new information).
@@ -54,6 +54,9 @@ pub trait Rule {
     /// internal state.
     fn apply(&mut self, state: &mut State) -> ();
 }
+
+mod material;
+pub use material::*;
 
 mod steady;
 pub use steady::*;
