@@ -1,11 +1,13 @@
 use chess::Board;
 
-use crate::rules::{Rule, State, SteadyRule};
+use crate::rules::{MaterialRule, Rule, State, SteadyRule};
 
 /// Initialize on the given board all the available rules.
 fn init_rules(board: &Board) -> Vec<Box<dyn Rule>> {
-    let steady_rule = SteadyRule::new(board);
-    vec![Box::new(steady_rule)]
+    vec![
+        Box::new(MaterialRule::new(board)),
+        Box::new(SteadyRule::new(board)),
+    ]
 }
 
 /// Checks whether the given `Board` is *legal*, i.e. reachable from the
@@ -29,13 +31,13 @@ pub fn is_legal(board: &Board) -> bool {
     loop {
         state.progress = false;
         for rule in rules.iter_mut() {
-            if rule.is_applicable(&state) {
+            if rule.is_applicable(&state) && state.illegal.is_none() {
                 rule.apply(&mut state);
             }
         }
-        if !state.progress {
+        if !state.progress || state.illegal.is_some() {
             break;
         }
     }
-    state.illegal != Some(false)
+    state.illegal != Some(true)
 }
