@@ -31,6 +31,8 @@ impl Rule for SteadyRule {
 
     fn apply(&mut self, state: &mut State) -> () {
         state.steady = steady_pieces(&state.board, &state.steady);
+
+        // update the rule state and report any progress
         if self.steady != state.steady {
             self.steady = state.steady;
             state.progress = true;
@@ -52,7 +54,7 @@ lazy_static! {
 /// Gets a `Board`` and a `BitBoard` containing the information on squares
 /// assumed to contain steady pieces, it returns an updated `BitBoard` of steady
 /// pieces.
-pub fn steady_pieces(board: &Board, steady: &BitBoard) -> BitBoard {
+fn steady_pieces(board: &Board, steady: &BitBoard) -> BitBoard {
     debug_assert!(board.is_sane());
     let mut steady = steady.clone();
     for color in ALL_COLORS {

@@ -37,6 +37,7 @@ impl Rule for MaterialRule {
 
 /// Returns `true` iff the given board contains an amount of material that is
 /// impossible to reach in a legal game.
+#[inline]
 pub fn illegal_material(board: &Board) -> bool {
     for color in ALL_COLORS {
         let bishops = bishops(&board, color);
