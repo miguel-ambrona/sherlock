@@ -1,7 +1,6 @@
 use std::str::FromStr;
 
 use chess::Board;
-use sherlock;
 
 pub enum Legality {
     Ok,

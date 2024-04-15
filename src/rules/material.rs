@@ -27,7 +27,7 @@ impl Rule for MaterialRule {
         !self.applied
     }
 
-    fn apply(&mut self, state: &mut State) -> () {
+    fn apply(&mut self, state: &mut State) {
         self.applied = true;
         if illegal_material(&state.board) {
             state.illegal = Some(true)
@@ -40,13 +40,13 @@ impl Rule for MaterialRule {
 #[inline]
 pub fn illegal_material(board: &Board) -> bool {
     for color in ALL_COLORS {
-        let bishops = bishops(&board, color);
-        let lower_bound_promoted = max(0, knights(&board, color).popcnt() as i32 - 2)
+        let bishops = bishops(board, color);
+        let lower_bound_promoted = max(0, knights(board, color).popcnt() as i32 - 2)
             + max(0, (bishops & LIGHT_SQUARES).popcnt() as i32 - 1)
             + max(0, (bishops & DARK_SQUARES).popcnt() as i32 - 1)
-            + max(0, rooks(&board, color).popcnt() as i32 - 2)
-            + max(0, queens(&board, color).popcnt() as i32 - 1);
-        if 8 - (pawns(&board, color).popcnt() as i32) < lower_bound_promoted {
+            + max(0, rooks(board, color).popcnt() as i32 - 2)
+            + max(0, queens(board, color).popcnt() as i32 - 1);
+        if 8 - (pawns(board, color).popcnt() as i32) < lower_bound_promoted {
             return true;
         }
     }

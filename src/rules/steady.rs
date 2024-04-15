@@ -29,7 +29,7 @@ impl Rule for SteadyRule {
         self.steady != state.steady || self.steady == EMPTY
     }
 
-    fn apply(&mut self, state: &mut State) -> () {
+    fn apply(&mut self, state: &mut State) {
         state.steady = steady_pieces(&state.board, &state.steady);
 
         // update the rule state and report any progress
@@ -56,7 +56,7 @@ lazy_static! {
 /// pieces.
 fn steady_pieces(board: &Board, steady: &BitBoard) -> BitBoard {
     debug_assert!(board.is_sane());
-    let mut steady = steady.clone();
+    let mut steady = *steady;
     for color in ALL_COLORS {
         // steady pieces due to castling rights
         let castle_rights = board.castle_rights(color);
