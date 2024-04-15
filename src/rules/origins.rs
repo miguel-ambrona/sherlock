@@ -29,7 +29,7 @@ impl Rule for OriginsRule {
         self.steady != state.steady || self.steady == EMPTY
     }
 
-    fn apply(&mut self, state: &mut State) -> () {
+    fn apply(&mut self, state: &mut State) {
         let mut progress = false;
 
         for square in *state.board.combined() & state.steady & !self.steady {

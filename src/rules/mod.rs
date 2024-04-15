@@ -39,7 +39,7 @@ pub struct State {
 impl State {
     pub fn new(board: &Board) -> Self {
         State {
-            board: board.clone(),
+            board: *board,
             steady: EMPTY,
             origins: ([!EMPTY; 64], 0),
             illegal: None,
@@ -94,7 +94,7 @@ pub trait Rule: fmt::Debug {
 
     /// Applies the rule, possibly modifying the proof state and the rule's
     /// internal state.
-    fn apply(&mut self, state: &mut State) -> ();
+    fn apply(&mut self, state: &mut State);
 }
 
 impl fmt::Display for State {
