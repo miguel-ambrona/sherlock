@@ -1,12 +1,13 @@
 use chess::Board;
 
-use crate::rules::{MaterialRule, Rule, State, SteadyRule};
+use crate::rules::{MaterialRule, OriginsRule, Rule, State, SteadyRule};
 
-/// Initialize on the given board all the available rules.
+/// Initialize all the available rules on the given board.
 fn init_rules(board: &Board) -> Vec<Box<dyn Rule>> {
     vec![
         Box::new(MaterialRule::new(board)),
         Box::new(SteadyRule::new(board)),
+        Box::new(OriginsRule::new(board)),
     ]
 }
 
