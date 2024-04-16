@@ -23,7 +23,8 @@ pub struct State {
     /// `BitBoard::from_square(t) & origins[s.to_index()] == EMPTY` means that
     /// the piece on `s` has definitely not started the game on square `t`.
     ///
-    /// We also store a counter that is increased every time this variable is updated.
+    /// We also store a counter that is increased every time this variable is
+    /// updated.
     pub origins: ([BitBoard; 64], Counter),
 
     /// A flag about the legality of the position. `None` if undetermined,
