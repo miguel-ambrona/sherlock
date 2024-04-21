@@ -103,10 +103,7 @@ impl fmt::Display for State {
         writeln!(f, "FEN: {}\n", self.board,)?;
         writeln!(f, "steady:\n{}", self.steady.reverse_colors())?;
         writeln!(f, "origins (cnt: {}):\n", self.origins.1)?;
-        for square in *self.board.combined() {
-            if self.origins(square).popcnt() == 1 {
-                continue;
-            }
+        for square in *self.board.combined() & !self.steady {
             write!(f, "  {} <- [", square)?;
             for origin in self.origins(square) {
                 write!(f, "{},", origin)?;
@@ -125,3 +122,6 @@ pub use steady::*;
 
 mod origins;
 pub use origins::*;
+
+mod refine_origins;
+pub use refine_origins::*;

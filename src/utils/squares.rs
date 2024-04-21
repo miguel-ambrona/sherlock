@@ -8,6 +8,9 @@ pub const LIGHT_SQUARES: BitBoard = BitBoard(6172840429334713770);
 /// The dark squares of the chess board.
 pub const DARK_SQUARES: BitBoard = BitBoard(12273903644374837845);
 
+/// The light and dark squares of the chess board.
+pub const COLOR_SQUARES: [BitBoard; 2] = [LIGHT_SQUARES, DARK_SQUARES];
+
 /// The A1 square on the chess board.
 pub const A1: Square = Square::A1;
 

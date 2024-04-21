@@ -1,20 +1,17 @@
 //! Steady rule.
+//!
+//! A rule that updates the information on steady pieces: pieces that have
+//! certainly never moved and are still on their starting square.
+//! Steady pieces can be identified through the castling information or by
+//! realizing that a piece is limited in movement by other steady pieces (e.g.
+//! pawns on their relative 2nd rank are steady, thus a white bishop on c1 is
+//! steady if there are white pawns on b2 and d2).
 
 use chess::{BitBoard, Board, CastleRights, Piece, ALL_COLORS, EMPTY};
-use lazy_static::lazy_static;
 
 use super::{Rule, State};
-use crate::utils::{
-    bitboard_of_squares, predecessors, C1, C2, C7, C8, D1, D2, D7, D8, E1, E2, E7, E8, F1, F2, F7,
-    F8,
-};
+use crate::utils::predecessors;
 
-/// A rule that updates the information on steady pieces: pieces that have
-/// certainly never moved and are still on their starting square.
-/// Steady pieces can be identified through the castling information or by
-/// realizing that a piece is limited in movement by other steady pieces (e.g.
-/// pawns on their relative 2nd rank are steady, thus a white bishop on c1 is
-/// steady if there are white pawns on b2 and d2).
 #[derive(Debug)]
 pub struct SteadyRule {
     steady: BitBoard,
@@ -38,17 +35,6 @@ impl Rule for SteadyRule {
             state.progress = true;
         }
     }
-}
-
-lazy_static! {
-    static ref MARRIAGE_COUPLE: [BitBoard; 2] = [
-        bitboard_of_squares(&[D1, E1]),
-        bitboard_of_squares(&[D8, E8]),
-    ];
-    static ref MARRIAGE_CAGE: [BitBoard; 2] = [
-        bitboard_of_squares(&[C1, C2, D2, E2, F2, F1,]),
-        bitboard_of_squares(&[C8, C7, D7, E7, F7, F8,]),
-    ];
 }
 
 /// Gets a `Board`` and a `BitBoard` containing the information on squares
@@ -92,12 +78,21 @@ fn steady_pieces(board: &Board, steady: &BitBoard) -> BitBoard {
     steady
 }
 
+const MARRIAGE_COUPLE: [BitBoard; 2] = [
+    BitBoard(24),                  // D1, E1
+    BitBoard(1729382256910270464), // D8, E8
+];
+const MARRIAGE_CAGE: [BitBoard; 2] = [
+    BitBoard(15396),               // C1, C2, D2, E2, F2, F1
+    BitBoard(2610961883968045056), // C8, C7, D7, E7, F7, F8
+];
+
 #[cfg(test)]
 mod tests {
     use std::str::FromStr;
 
     use super::*;
-    use crate::utils::{A1, A6, A8, B2, B7, B8, C6, F3, G1, G2, G7, H1, H2, H3};
+    use crate::utils::*;
 
     #[test]
     fn test_steady_pieces() {
