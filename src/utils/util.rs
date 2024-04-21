@@ -5,6 +5,8 @@ use chess::{
     BitBoard, Board, Color, Piece, Square, EMPTY,
 };
 
+use super::LIGHT_SQUARES;
+
 /// Construct a `BitBoard` out of the given squares.
 #[inline]
 pub fn bitboard_of_squares(squares: &[Square]) -> BitBoard {
@@ -41,6 +43,14 @@ pub fn rooks(board: &Board, color: Color) -> BitBoard {
 #[inline]
 pub fn queens(board: &Board, color: Color) -> BitBoard {
     board.pieces(Piece::Queen) & board.color_combined(color)
+}
+
+#[inline]
+pub fn square_color(square: Square) -> Color {
+    match BitBoard::from_square(square) & LIGHT_SQUARES {
+        EMPTY => Color::Black,
+        _ => Color::White,
+    }
 }
 
 /// A `BitBoard` with the squares from which a piece of the given `Piece` type
