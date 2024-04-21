@@ -8,8 +8,8 @@ use chess::{
 use super::LIGHT_SQUARES;
 
 /// Construct a `BitBoard` out of the given squares.
-#[inline]
-pub fn bitboard_of_squares(squares: &[Square]) -> BitBoard {
+#[cfg(test)]
+pub(crate) fn bitboard_of_squares(squares: &[Square]) -> BitBoard {
     squares
         .iter()
         .fold(EMPTY, |acc, s| acc | BitBoard::from_square(*s))
