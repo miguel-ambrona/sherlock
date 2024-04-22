@@ -6,8 +6,8 @@
 
 use chess::{Board, ALL_COLORS};
 
-use super::{Counter, Rule, State};
-use crate::utils::find_k_group;
+use super::{Rule, State};
+use crate::{state::Counter, utils::find_k_group};
 
 #[derive(Debug)]
 pub struct RefineOriginsRule {

@@ -4,8 +4,11 @@ use std::cmp::max;
 
 use chess::{Board, ALL_COLORS};
 
-use super::{Rule, State};
-use crate::utils::{bishops, knights, pawns, queens, rooks, DARK_SQUARES, LIGHT_SQUARES};
+use super::Rule;
+use crate::{
+    state::State,
+    utils::{bishops, knights, pawns, queens, rooks, DARK_SQUARES, LIGHT_SQUARES},
+};
 
 /// A rule that performs a simple check on the position material,
 /// making sure it is plausible for an actual game.
