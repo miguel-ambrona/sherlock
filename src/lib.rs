@@ -19,6 +19,7 @@
 #![deny(missing_docs)]
 
 mod rules;
+mod state;
 mod utils;
 
 mod legality;
