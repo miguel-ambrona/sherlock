@@ -29,6 +29,17 @@ pub struct State {
     /// updated.
     pub origins: ([BitBoard; 64], Counter),
 
+    /// A lower-upper bound pair on the number of captures performed by every
+    /// piece.
+    ///
+    /// For `s : Square`, `captures_bounds[s.to_index()] = (l, u)` means that
+    /// the number of captures, `n` performed by the piece that started the
+    /// game on `s` is such that `l <= n <= u`.
+    ///
+    /// We also store a counter that is increased every time this variable is
+    /// updated.
+    pub captures_bounds: ([(i32, i32); 64], Counter),
+
     /// A flag about the legality of the position. `None` if undetermined,
     /// `Some(true)` if the position has been determined to be illegal, and
     /// `Some(false)` if the position is known to be legal.
@@ -46,6 +57,7 @@ impl State {
             board: *board,
             steady: EMPTY,
             origins: ([!EMPTY; 64], 0),
+            captures_bounds: ([(0, 15); 64], 0),
             illegal: None,
             progress: false,
         }
@@ -54,7 +66,7 @@ impl State {
     /// Tells whether or not the piece on the current state was classified as
     /// steady.
     #[inline]
-    pub fn _is_steady(&self, square: Square) -> bool {
+    pub fn is_steady(&self, square: Square) -> bool {
         BitBoard::from_square(square) & self.steady != EMPTY
     }
 
@@ -62,6 +74,44 @@ impl State {
     #[inline]
     pub fn origins(&self, square: Square) -> BitBoard {
         self.origins.0[square.to_index()]
+    }
+
+    /// A known lower-upper bound pair on the number of captures performed by
+    /// the piece that started the game on the given square.
+    #[inline]
+    pub fn captures_bounds(&self, square: Square) -> (i32, i32) {
+        self.captures_bounds.0[square.to_index()]
+    }
+
+    /// The known lower bound on the number of captures performed by the piece
+    /// that started the game on the given square.
+    #[inline]
+    pub fn captures_lower_bound(&self, square: Square) -> i32 {
+        self.captures_bounds(square).0
+    }
+
+    /// The known upper bound on the number of captures performed by the piece
+    /// that started the game on the given square.
+    #[inline]
+    pub fn _captures_upper_bound(&self, square: Square) -> i32 {
+        self.captures_bounds(square).1
+    }
+
+    /// Update the known lower bound on the number of captures performed by the
+    /// piece that started the game on the given square, with the given
+    /// value.
+    #[inline]
+    #[cfg(test)]
+    pub fn update_captures_lower_bound(&mut self, square: Square, bound: i32) {
+        self.captures_bounds.0[square.to_index()].0 = bound;
+    }
+
+    /// Update the known upper bound on the number of captures performed by the
+    /// piece that started the game on the given square, with the given
+    /// value.
+    #[inline]
+    pub fn update_captures_upper_bound(&mut self, square: Square, bound: i32) {
+        self.captures_bounds.0[square.to_index()].1 = bound;
     }
 
     /// The piece type of the piece on the given square in the state's board.
@@ -96,6 +146,25 @@ impl fmt::Display for State {
             }
             writeln!(f, "]")?;
         }
-        writeln!(f, "illegal: {:?}", self.illegal)
+        writeln!(f, "\ncaptures bounds (cnt: {}):\n", self.captures_bounds.1)?;
+        let mut lines = vec![];
+        let mut line = vec![];
+        let mut cnt = 0;
+        for square in *Board::default().combined() {
+            let (l, u) = self.captures_bounds(square);
+            line.push(format!(" {}: ({}, {})", square, l, u));
+            cnt += 1;
+            if cnt % 8 == 0 {
+                lines.push(line.join(" "));
+                line = vec![];
+                if cnt == 16 {
+                    lines.push(String::new());
+                }
+            }
+        }
+        for line in lines.iter().rev() {
+            writeln!(f, "{}", line)?;
+        }
+        writeln!(f, "\nillegal: {:?}", self.illegal)
     }
 }

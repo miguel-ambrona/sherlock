@@ -68,7 +68,7 @@ fn origins_of_piece_on(piece: Piece, square: Square) -> BitBoard {
     }
 }
 
-const COLOR_ORIGINS: [BitBoard; 2] = [
+pub const COLOR_ORIGINS: [BitBoard; 2] = [
     BitBoard(65535),                // 1st & 2nd ranks
     BitBoard(18446462598732840960), // 7th & 8th ranks
 ];
