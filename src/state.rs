@@ -2,7 +2,26 @@ use std::fmt;
 
 use chess::{BitBoard, Board, Color, Piece, Square, ALL_COLORS, EMPTY};
 
-pub type Counter = usize;
+pub struct Counter<T> {
+    value: T,
+    counter: usize,
+}
+
+impl<T> Counter<T> {
+    fn new(value: T) -> Self {
+        Self { value, counter: 0 }
+    }
+
+    #[inline]
+    pub fn counter(&self) -> usize {
+        self.counter
+    }
+
+    #[inline]
+    pub fn increase_counter(&mut self) {
+        self.counter += 1
+    }
+}
 
 /// Type `State` contains all the information that has been derived about the
 /// legality of the position of interest.
@@ -13,7 +32,7 @@ pub struct State {
 
     /// A set of squares of steady pieces (that have certainly never moved and
     /// are still on their starting square).
-    pub steady: BitBoard,
+    pub steady: Counter<BitBoard>,
 
     /// The potential candidate origins of the pieces that are still on the
     /// board.
@@ -27,7 +46,7 @@ pub struct State {
     ///
     /// We also store a counter that is increased every time this variable is
     /// updated.
-    pub origins: ([BitBoard; 64], Counter),
+    pub origins: Counter<[BitBoard; 64]>,
 
     /// A lower-upper bound pair on the number of captures performed by every
     /// piece.
@@ -38,7 +57,7 @@ pub struct State {
     ///
     /// We also store a counter that is increased every time this variable is
     /// updated.
-    pub captures_bounds: ([(i32, i32); 64], Counter),
+    pub captures_bounds: Counter<[(i32, i32); 64]>,
 
     /// A flag about the legality of the position. `None` if undetermined,
     /// `Some(true)` if the position has been determined to be illegal, and
@@ -55,32 +74,63 @@ impl State {
     pub fn new(board: &Board) -> Self {
         State {
             board: *board,
-            steady: EMPTY,
-            origins: ([!EMPTY; 64], 0),
-            captures_bounds: ([(0, 15); 64], 0),
+            steady: Counter::new(EMPTY),
+            origins: Counter::new([!EMPTY; 64]),
+            captures_bounds: Counter::new([(0, 15); 64]),
             illegal: None,
             progress: false,
         }
+    }
+}
+
+impl State {
+    /// The mask of pieces known to be steady.
+    #[inline]
+    pub fn get_steady(&self) -> BitBoard {
+        self.steady.value
+    }
+
+    /// Update the information on steady pieces with the given value.
+    #[inline]
+    pub fn update_steady(&mut self, value: BitBoard) {
+        self.steady.value |= value;
     }
 
     /// Tells whether or not the piece on the current state was classified as
     /// steady.
     #[inline]
     pub fn is_steady(&self, square: Square) -> bool {
-        BitBoard::from_square(square) & self.steady != EMPTY
+        BitBoard::from_square(square) & self.steady.value != EMPTY
+    }
+}
+
+impl State {
+    /// The candidate origins array of all pieces.
+    #[inline]
+    pub fn get_origins(&self) -> [BitBoard; 64] {
+        self.origins.value
+    }
+
+    /// Update the candidate origins of the piece on the given square, with the
+    /// given value.
+    #[inline]
+    pub fn update_origins(&mut self, square: Square, value: BitBoard) {
+        self.origins.value[square.to_index()] = value;
     }
 
     /// The candidate origins of the piece on the given square.
     #[inline]
     pub fn origins(&self, square: Square) -> BitBoard {
-        self.origins.0[square.to_index()]
+        self.origins.value[square.to_index()]
     }
+}
 
+impl State {
     /// A known lower-upper bound pair on the number of captures performed by
     /// the piece that started the game on the given square.
     #[inline]
     pub fn captures_bounds(&self, square: Square) -> (i32, i32) {
-        self.captures_bounds.0[square.to_index()]
+        self.captures_bounds.value[square.to_index()]
     }
 
     /// The known lower bound on the number of captures performed by the piece
@@ -103,7 +153,7 @@ impl State {
     #[inline]
     #[cfg(test)]
     pub fn update_captures_lower_bound(&mut self, square: Square, bound: i32) {
-        self.captures_bounds.0[square.to_index()].0 = bound;
+        self.captures_bounds.value[square.to_index()].0 = bound;
     }
 
     /// Update the known upper bound on the number of captures performed by the
@@ -111,9 +161,11 @@ impl State {
     /// value.
     #[inline]
     pub fn update_captures_upper_bound(&mut self, square: Square, bound: i32) {
-        self.captures_bounds.0[square.to_index()].1 = bound;
+        self.captures_bounds.value[square.to_index()].1 = bound;
     }
+}
 
+impl State {
     /// The piece type of the piece on the given square in the state's board.
     /// Panics if the square is empty.
     #[inline]
@@ -137,16 +189,20 @@ impl State {
 impl fmt::Display for State {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "FEN: {}\n", self.board,)?;
-        writeln!(f, "steady:\n{}", self.steady.reverse_colors())?;
-        writeln!(f, "origins (cnt: {}):\n", self.origins.1)?;
-        for square in *self.board.combined() & !self.steady {
+        writeln!(f, "steady:\n{}", self.steady.value.reverse_colors())?;
+        writeln!(f, "origins (cnt: {}):\n", self.origins.counter)?;
+        for square in *self.board.combined() & !self.steady.value {
             write!(f, "  {} <- [", square)?;
             for origin in self.origins(square) {
                 write!(f, "{},", origin)?;
             }
             writeln!(f, "]")?;
         }
-        writeln!(f, "\ncaptures bounds (cnt: {}):\n", self.captures_bounds.1)?;
+        writeln!(
+            f,
+            "\ncaptures bounds (cnt: {}):\n",
+            self.captures_bounds.counter
+        )?;
         let mut lines = vec![];
         let mut line = vec![];
         let mut cnt = 0;

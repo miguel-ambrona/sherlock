@@ -24,31 +24,31 @@ impl Rule for OriginsRule {
     }
 
     fn is_applicable(&self, state: &State) -> bool {
-        self.steady != state.steady || self.steady == EMPTY
+        self.steady != state.get_steady() || self.steady == EMPTY
     }
 
     fn apply(&mut self, state: &mut State) {
         let mut progress = false;
 
-        for square in *state.board.combined() & state.steady & !self.steady {
+        for square in *state.board.combined() & state.get_steady() & !self.steady {
             let square_origins = BitBoard::from_square(square);
             progress = progress || (state.origins(square) != square_origins);
-            state.origins.0[square.to_index()] = square_origins;
+            state.update_origins(square, square_origins);
         }
 
-        for square in *state.board.combined() & !state.steady {
+        for square in *state.board.combined() & !state.get_steady() {
             let square_origins = state.origins(square)
-                & !state.steady
+                & !state.get_steady()
                 & COLOR_ORIGINS[state.piece_color_on(square).to_index()]
                 & origins_of_piece_on(state.piece_type_on(square), square);
             progress = progress || (state.origins(square) != square_origins);
-            state.origins.0[square.to_index()] = square_origins;
+            state.update_origins(square, square_origins);
         }
 
         // update the rule state and report any progress
-        self.steady = state.steady;
+        self.steady = state.get_steady();
         if progress {
-            state.origins.1 += 1;
+            state.origins.increase_counter();
             state.progress = true;
         }
     }

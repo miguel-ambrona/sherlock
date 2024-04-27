@@ -7,11 +7,11 @@
 use chess::{Board, ALL_COLORS};
 
 use super::{Rule, State};
-use crate::{state::Counter, utils::find_k_group};
+use crate::utils::find_k_group;
 
 #[derive(Debug)]
 pub struct RefineOriginsRule {
-    origins_counter: Counter,
+    origins_counter: usize,
 }
 
 impl Rule for RefineOriginsRule {
@@ -20,7 +20,7 @@ impl Rule for RefineOriginsRule {
     }
 
     fn is_applicable(&self, state: &State) -> bool {
-        self.origins_counter != state.origins.1 || self.origins_counter == 0
+        self.origins_counter != state.origins.counter() || self.origins_counter == 0
     }
 
     fn apply(&mut self, state: &mut State) {
@@ -32,14 +32,14 @@ impl Rule for RefineOriginsRule {
             for k in 1..=10 {
                 let mut iter = *state.board.color_combined(color);
                 loop {
-                    match find_k_group(k, &state.origins.0, iter) {
+                    match find_k_group(k, &state.get_origins(), iter) {
                         None => break,
                         Some((group, remaining)) => {
                             iter = remaining;
                             for square in iter {
                                 let square_origins = state.origins(square) & !group;
                                 progress |= state.origins(square) != square_origins;
-                                state.origins.0[square.to_index()] = square_origins;
+                                state.update_origins(square, square_origins);
                             }
                         }
                     }
@@ -48,9 +48,9 @@ impl Rule for RefineOriginsRule {
         }
 
         // update the rule state and report any progress
-        self.origins_counter = state.origins.1;
+        self.origins_counter = state.origins.counter();
         if progress {
-            state.origins.1 += 1;
+            state.origins.increase_counter();
             state.progress = true;
         }
     }
