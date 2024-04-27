@@ -32,7 +32,7 @@ impl Rule for RefineOriginsRule {
             for k in 1..=10 {
                 let mut iter = *state.board.color_combined(color);
                 loop {
-                    match find_k_group(k, &state.origins_array(), iter) {
+                    match find_k_group(k, &state.get_origins(), iter) {
                         None => break,
                         Some((group, remaining)) => {
                             iter = remaining;

@@ -81,7 +81,9 @@ impl State {
             progress: false,
         }
     }
+}
 
+impl State {
     /// The mask of pieces known to be steady.
     #[inline]
     pub fn get_steady(&self) -> BitBoard {
@@ -89,6 +91,7 @@ impl State {
     }
 
     /// Update the information on steady pieces with the given value.
+    #[inline]
     pub fn update_steady(&mut self, value: BitBoard) {
         self.steady.value |= value;
     }
@@ -99,17 +102,13 @@ impl State {
     pub fn is_steady(&self, square: Square) -> bool {
         BitBoard::from_square(square) & self.steady.value != EMPTY
     }
+}
 
+impl State {
     /// The candidate origins array of all pieces.
     #[inline]
-    pub fn origins_array(&self) -> [BitBoard; 64] {
+    pub fn get_origins(&self) -> [BitBoard; 64] {
         self.origins.value
-    }
-
-    /// The candidate origins of the piece on the given square.
-    #[inline]
-    pub fn origins(&self, square: Square) -> BitBoard {
-        self.origins.value[square.to_index()]
     }
 
     /// Update the candidate origins of the piece on the given square, with the
@@ -119,6 +118,14 @@ impl State {
         self.origins.value[square.to_index()] = value;
     }
 
+    /// The candidate origins of the piece on the given square.
+    #[inline]
+    pub fn origins(&self, square: Square) -> BitBoard {
+        self.origins.value[square.to_index()]
+    }
+}
+
+impl State {
     /// A known lower-upper bound pair on the number of captures performed by
     /// the piece that started the game on the given square.
     #[inline]
@@ -156,7 +163,9 @@ impl State {
     pub fn update_captures_upper_bound(&mut self, square: Square, bound: i32) {
         self.captures_bounds.value[square.to_index()].1 = bound;
     }
+}
 
+impl State {
     /// The piece type of the piece on the given square in the state's board.
     /// Panics if the square is empty.
     #[inline]
