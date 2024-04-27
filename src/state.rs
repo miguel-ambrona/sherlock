@@ -32,7 +32,7 @@ pub struct State {
 
     /// A set of squares of steady pieces (that have certainly never moved and
     /// are still on their starting square).
-    pub steady: BitBoard,
+    pub steady: Counter<BitBoard>,
 
     /// The potential candidate origins of the pieces that are still on the
     /// board.
@@ -74,7 +74,7 @@ impl State {
     pub fn new(board: &Board) -> Self {
         State {
             board: *board,
-            steady: EMPTY,
+            steady: Counter::new(EMPTY),
             origins: Counter::new([!EMPTY; 64]),
             captures_bounds: Counter::new([(0, 15); 64]),
             illegal: None,
@@ -82,11 +82,22 @@ impl State {
         }
     }
 
+    /// The mask of pieces known to be steady.
+    #[inline]
+    pub fn get_steady(&self) -> BitBoard {
+        self.steady.value
+    }
+
+    /// Update the information on steady pieces with the given value.
+    pub fn update_steady(&mut self, value: BitBoard) {
+        self.steady.value |= value;
+    }
+
     /// Tells whether or not the piece on the current state was classified as
     /// steady.
     #[inline]
     pub fn is_steady(&self, square: Square) -> bool {
-        BitBoard::from_square(square) & self.steady != EMPTY
+        BitBoard::from_square(square) & self.steady.value != EMPTY
     }
 
     /// The candidate origins array of all pieces.
@@ -101,10 +112,11 @@ impl State {
         self.origins.value[square.to_index()]
     }
 
-    /// Update the candidate origins of the piece on the given square, with the given value.
+    /// Update the candidate origins of the piece on the given square, with the
+    /// given value.
     #[inline]
     pub fn update_origins(&mut self, square: Square, value: BitBoard) {
-        self.origins.value[square.to_index()] = value
+        self.origins.value[square.to_index()] = value;
     }
 
     /// A known lower-upper bound pair on the number of captures performed by
@@ -168,9 +180,9 @@ impl State {
 impl fmt::Display for State {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "FEN: {}\n", self.board,)?;
-        writeln!(f, "steady:\n{}", self.steady.reverse_colors())?;
+        writeln!(f, "steady:\n{}", self.steady.value.reverse_colors())?;
         writeln!(f, "origins (cnt: {}):\n", self.origins.counter)?;
-        for square in *self.board.combined() & !self.steady {
+        for square in *self.board.combined() & !self.steady.value {
             write!(f, "  {} <- [", square)?;
             for origin in self.origins(square) {
                 write!(f, "{},", origin)?;

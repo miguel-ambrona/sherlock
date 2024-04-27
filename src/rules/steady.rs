@@ -7,31 +7,33 @@
 //! pawns on their relative 2nd rank are steady, thus a white bishop on c1 is
 //! steady if there are white pawns on b2 and d2).
 
-use chess::{BitBoard, Board, CastleRights, Piece, ALL_COLORS, EMPTY};
+use chess::{BitBoard, Board, CastleRights, Piece, ALL_COLORS};
 
 use super::{Rule, State};
 use crate::utils::predecessors;
 
 #[derive(Debug)]
 pub struct SteadyRule {
-    steady: BitBoard,
+    steady_counter: usize,
 }
 
 impl Rule for SteadyRule {
     fn new(_board: &Board) -> Self {
-        SteadyRule { steady: EMPTY }
+        SteadyRule { steady_counter: 0 }
     }
 
     fn is_applicable(&self, state: &State) -> bool {
-        self.steady != state.steady || self.steady == EMPTY
+        self.steady_counter != state.steady.counter() || self.steady_counter == 0
     }
 
     fn apply(&mut self, state: &mut State) {
-        state.steady = steady_pieces(&state.board, &state.steady);
+        let new_steady = steady_pieces(&state.board, &state.get_steady());
+        state.update_steady(new_steady);
 
         // update the rule state and report any progress
-        if self.steady != state.steady {
-            self.steady = state.steady;
+        self.steady_counter = state.steady.counter();
+        if new_steady != state.get_steady() {
+            state.steady.increase_counter();
             state.progress = true;
         }
     }

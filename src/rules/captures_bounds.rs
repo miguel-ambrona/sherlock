@@ -8,28 +8,29 @@
 //! If at any point a lower bound exceeds the corresponding upper bound, the
 //! position can be declared to be illegal.
 
-use chess::{BitBoard, Board, ALL_COLORS, EMPTY};
+use chess::{Board, ALL_COLORS};
 
 use super::{Rule, State, COLOR_ORIGINS};
 
 #[derive(Debug)]
 pub struct CapturesBoundsRule {
-    steady: BitBoard,
     captures_bounds_counter: usize,
+    steady_counter: usize,
 }
 
 impl Rule for CapturesBoundsRule {
     fn new(_board: &Board) -> Self {
         CapturesBoundsRule {
-            steady: EMPTY,
             captures_bounds_counter: 0,
+            steady_counter: 0,
         }
     }
 
     fn is_applicable(&self, state: &State) -> bool {
         self.captures_bounds_counter != state.captures_bounds.counter()
-            || self.steady != state.steady
+            || self.steady_counter != state.steady.counter()
             || self.captures_bounds_counter == 0
+            || self.steady_counter == 0
     }
 
     fn apply(&mut self, state: &mut State) {
@@ -64,8 +65,7 @@ impl Rule for CapturesBoundsRule {
 
         // update the rule state and report any progress
         self.captures_bounds_counter = state.captures_bounds.counter();
-        self.steady = state.steady;
-
+        self.steady_counter = state.steady.counter();
         if progress {
             state.captures_bounds.increase_counter();
             state.progress = true;
@@ -96,7 +96,7 @@ mod tests {
         assert_eq!(state.captures_bounds(G8), (0, 10));
 
         // pretend these are now steady
-        state.steady = bitboard_of_squares(&[A1, G8]);
+        state.update_steady(bitboard_of_squares(&[A1, G8]));
         captures_rule.apply(&mut state);
 
         // their bounds now contain (0, 0)
