@@ -11,12 +11,11 @@
 use chess::{BitBoard, Board, ALL_COLORS, EMPTY};
 
 use super::{Rule, State, COLOR_ORIGINS};
-use crate::state::Counter;
 
 #[derive(Debug)]
 pub struct CapturesBoundsRule {
     steady: BitBoard,
-    captures_bounds_counter: Counter,
+    captures_bounds_counter: usize,
 }
 
 impl Rule for CapturesBoundsRule {
@@ -28,7 +27,7 @@ impl Rule for CapturesBoundsRule {
     }
 
     fn is_applicable(&self, state: &State) -> bool {
-        self.captures_bounds_counter != state.captures_bounds.1
+        self.captures_bounds_counter != state.captures_bounds.counter()
             || self.steady != state.steady
             || self.captures_bounds_counter == 0
     }
@@ -64,11 +63,11 @@ impl Rule for CapturesBoundsRule {
         }
 
         // update the rule state and report any progress
-        self.captures_bounds_counter = state.captures_bounds.1;
+        self.captures_bounds_counter = state.captures_bounds.counter();
         self.steady = state.steady;
 
         if progress {
-            state.captures_bounds.1 += 1;
+            state.captures_bounds.increase_counter();
             state.progress = true;
         }
     }
