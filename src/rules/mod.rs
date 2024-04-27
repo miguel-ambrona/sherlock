@@ -2,6 +2,8 @@ use std::fmt;
 
 use chess::Board;
 
+use crate::state::State;
+
 /// A legality rule, it updates the proof state about the legality of the
 /// position, after deriving new information.
 pub trait Rule: fmt::Debug {
@@ -31,4 +33,5 @@ pub use origins::*;
 mod refine_origins;
 pub use refine_origins::*;
 
-use crate::state::State;
+mod captures_bounds;
+pub use captures_bounds::*;
