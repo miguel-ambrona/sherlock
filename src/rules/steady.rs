@@ -28,14 +28,14 @@ impl Rule for SteadyRule {
 
     fn apply(&mut self, state: &mut State) {
         let new_steady = steady_pieces(&state.board, &state.get_steady());
-        state.update_steady(new_steady);
+        let progress = state.update_steady(new_steady);
 
-        // update the rule state and report any progress
+        // update the rule state
         self.steady_counter = state.steady.counter();
-        if new_steady != state.get_steady() {
-            state.steady.increase_counter();
-            state.progress = true;
-        }
+
+        // report any progress
+        state.steady.increase_counter(progress);
+        state.progress |= progress;
     }
 }
 

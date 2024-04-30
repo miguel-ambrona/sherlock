@@ -23,4 +23,5 @@ mod state;
 mod utils;
 
 mod legality;
-pub use crate::legality::*;
+
+pub use crate::{legality::*, state::*};

@@ -31,12 +31,12 @@ impl Rule for DestiniesRule {
             }
         }
 
-        // update the rule state and report any progress
+        // update the rule state
         self.origins_counter = state.origins.counter();
-        if progress {
-            state.destinies.increase_counter();
-            state.progress = true;
-        }
+
+        // report any progress
+        state.destinies.increase_counter(progress);
+        state.progress |= progress;
     }
 }
 
