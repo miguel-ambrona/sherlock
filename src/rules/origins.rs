@@ -32,8 +32,7 @@ impl Rule for OriginsRule {
 
         for square in *state.board.combined() & state.get_steady() & !self.steady {
             let square_origins = BitBoard::from_square(square);
-            progress = progress || (state.origins(square) != square_origins);
-            state.update_origins(square, square_origins);
+            progress |= state.update_origins(square, square_origins);
         }
 
         for square in *state.board.combined() & !state.get_steady() {
@@ -41,16 +40,15 @@ impl Rule for OriginsRule {
                 & !state.get_steady()
                 & COLOR_ORIGINS[state.piece_color_on(square).to_index()]
                 & origins_of_piece_on(state.piece_type_on(square), square);
-            progress = progress || (state.origins(square) != square_origins);
-            state.update_origins(square, square_origins);
+            progress |= state.update_origins(square, square_origins);
         }
 
-        // update the rule state and report any progress
+        // update the rule state
         self.steady = state.get_steady();
-        if progress {
-            state.origins.increase_counter();
-            state.progress = true;
-        }
+
+        // report any progress
+        state.origins.increase_counter(progress);
+        state.progress |= progress;
     }
 }
 

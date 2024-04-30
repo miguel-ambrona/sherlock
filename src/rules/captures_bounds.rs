@@ -38,8 +38,9 @@ impl Rule for CapturesBoundsRule {
         for color in ALL_COLORS {
             // count the number of missing opponents and add all our lower bounds
             let nb_missing_opponents = 16 - state.board.color_combined(!color).popcnt() as i32;
-            let sum_lower_bounds = COLOR_ORIGINS[color.to_index()]
-                .fold(0, |acc, square| acc + state.captures_lower_bound(square));
+            let sum_lower_bounds: i32 = COLOR_ORIGINS[color.to_index()]
+                .map(|square| state.nb_captures_lower_bound(square))
+                .sum();
 
             for square in *Board::default().color_combined(color) {
                 // steady pieces never moved, thus never captured
@@ -63,13 +64,13 @@ impl Rule for CapturesBoundsRule {
             }
         }
 
-        // update the rule state and report any progress
+        // update the rule state
         self.captures_bounds_counter = state.captures_bounds.counter();
         self.steady_counter = state.steady.counter();
-        if progress {
-            state.captures_bounds.increase_counter();
-            state.progress = true;
-        }
+
+        // report any progress
+        state.captures_bounds.increase_counter(progress);
+        state.progress |= progress;
     }
 }
 

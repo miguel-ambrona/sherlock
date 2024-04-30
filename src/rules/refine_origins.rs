@@ -38,8 +38,7 @@ impl Rule for RefineOriginsRule {
                             iter = remaining;
                             for square in iter {
                                 let square_origins = state.origins(square) & !group;
-                                progress |= state.origins(square) != square_origins;
-                                state.update_origins(square, square_origins);
+                                progress |= state.update_origins(square, square_origins);
                             }
                         }
                     }
@@ -47,11 +46,11 @@ impl Rule for RefineOriginsRule {
             }
         }
 
-        // update the rule state and report any progress
+        // update the rule state
         self.origins_counter = state.origins.counter();
-        if progress {
-            state.origins.increase_counter();
-            state.progress = true;
-        }
+
+        // report any progress
+        state.origins.increase_counter(progress);
+        state.progress |= progress;
     }
 }
