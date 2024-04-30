@@ -33,5 +33,8 @@ pub use origins::*;
 mod refine_origins;
 pub use refine_origins::*;
 
+mod destinies;
+pub use destinies::*;
+
 mod captures_bounds;
 pub use captures_bounds::*;
