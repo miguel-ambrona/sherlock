@@ -1,7 +1,10 @@
 use chess::Board;
 
 use crate::{
-    rules::{CapturesBoundsRule, MaterialRule, OriginsRule, RefineOriginsRule, Rule, SteadyRule},
+    rules::{
+        CapturesBoundsRule, DestiniesRule, MaterialRule, OriginsRule, RefineOriginsRule, Rule,
+        SteadyRule,
+    },
     state::State,
 };
 
@@ -12,6 +15,7 @@ fn init_rules(board: &Board) -> Vec<Box<dyn Rule>> {
         Box::new(SteadyRule::new(board)),
         Box::new(OriginsRule::new(board)),
         Box::new(RefineOriginsRule::new(board)),
+        Box::new(DestiniesRule::new(board)),
         Box::new(CapturesBoundsRule::new(board)),
     ]
 }

@@ -1,6 +1,6 @@
 use std::fmt;
 
-use chess::{BitBoard, Board, Color, Piece, Square, ALL_COLORS, EMPTY};
+use chess::{BitBoard, Board, Color, Piece, Square, ALL_COLORS, EMPTY, NUM_SQUARES};
 
 pub struct Counter<T> {
     value: T,
@@ -34,19 +34,24 @@ pub struct State {
     /// are still on their starting square).
     pub steady: Counter<BitBoard>,
 
-    /// The potential candidate origins of the pieces that are still on the
-    /// board.
+    /// The candidate origins of the pieces that are still on the board.
     ///
     /// For `s : Square`, `origins[s.to_index()]` is a `BitBoard` encoding the
     /// squares where the piece currently on `s` may have started the game.
     ///
-    /// On the other hand, `BitBoard::from_square(t) & origins[s.to_index()] ==
-    /// EMPTY` means that the piece on `s` has definitely not started the
-    /// game on square `t`.
+    /// If `BitBoard::from_square(t) & origins[s.to_index()] == EMPTY`, then
+    /// the piece on `s` has definitely not started the game on square `t`.
+    pub origins: Counter<[BitBoard; NUM_SQUARES]>,
+
+    /// The candidate locations where pieces may have ended the game, i.e.,
+    /// where they were captured or where they are currently standing.
     ///
-    /// We also store a counter that is increased every time this variable is
-    /// updated.
-    pub origins: Counter<[BitBoard; 64]>,
+    /// For `s : Square`, `destinies[s.to_index()]` is a `BitBoard` encoding the
+    /// squares where the piece that started on `s` may have ended the game.
+    ///
+    /// If `BitBoard::from_square(t) & destinies[s.to_index()] == EMPTY`, then
+    /// the piece which started on `s` has definitely not ended the game on `t`.
+    pub destinies: Counter<[BitBoard; NUM_SQUARES]>,
 
     /// A lower-upper bound pair on the number of captures performed by every
     /// piece.
@@ -54,10 +59,7 @@ pub struct State {
     /// For `s : Square`, `captures_bounds[s.to_index()] = (l, u)` means that
     /// the number of captures, `n` performed by the piece that started the
     /// game on `s` is such that `l <= n <= u`.
-    ///
-    /// We also store a counter that is increased every time this variable is
-    /// updated.
-    pub captures_bounds: Counter<[(i32, i32); 64]>,
+    pub captures_bounds: Counter<[(i32, i32); NUM_SQUARES]>,
 
     /// A flag about the legality of the position. `None` if undetermined,
     /// `Some(true)` if the position has been determined to be illegal, and
@@ -76,6 +78,7 @@ impl State {
             board: *board,
             steady: Counter::new(EMPTY),
             origins: Counter::new([!EMPTY; 64]),
+            destinies: Counter::new([!EMPTY; 64]),
             captures_bounds: Counter::new([(0, 15); 64]),
             illegal: None,
             progress: false,
@@ -122,6 +125,35 @@ impl State {
     #[inline]
     pub fn origins(&self, square: Square) -> BitBoard {
         self.origins.value[square.to_index()]
+    }
+}
+
+impl State {
+    /// Update the candidate destinies of the piece that started on the given
+    /// square, with the given value.
+    /// Returns a boolean value indicating whether the update actually changed
+    /// the known information on destinies.
+    #[inline]
+    pub fn update_destinies(&mut self, square: Square, value: BitBoard) -> bool {
+        if self.destinies.value[square.to_index()] == value {
+            return false;
+        }
+
+        self.destinies.value[square.to_index()] = value;
+
+        // if the set of candidate destinies of a piece is empty, the position is
+        // illegal
+        if value == EMPTY {
+            self.illegal = Some(true);
+        }
+
+        true
+    }
+
+    /// The candidate destinies of the piece that started on the given square.
+    #[inline]
+    pub fn destinies(&self, square: Square) -> BitBoard {
+        self.destinies.value[square.to_index()]
     }
 }
 
@@ -190,13 +222,25 @@ impl fmt::Display for State {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "FEN: {}\n", self.board,)?;
         writeln!(f, "steady:\n{}", self.steady.value.reverse_colors())?;
-        writeln!(f, "origins (cnt: {}):\n", self.origins.counter)?;
+        writeln!(f, "\norigins (cnt: {}):\n", self.origins.counter)?;
         for square in *self.board.combined() & !self.steady.value {
             write!(f, "  {} <- [", square)?;
             for origin in self.origins(square) {
                 write!(f, "{},", origin)?;
             }
             writeln!(f, "]")?;
+        }
+        writeln!(f, "\ndestinies (cnt: {}):\n", self.destinies.counter)?;
+        for square in *Board::default().combined() & !self.steady.value {
+            if self.destinies(square) == !EMPTY {
+                writeln!(f, "  {}, -> ANY", square)?;
+            } else {
+                write!(f, "  {} -> [", square)?;
+                for destiny in self.destinies(square) {
+                    write!(f, "{},", destiny)?;
+                }
+                writeln!(f, "]")?;
+            }
         }
         writeln!(
             f,
