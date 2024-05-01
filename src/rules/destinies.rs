@@ -24,7 +24,7 @@ impl Rule for DestiniesRule {
     fn apply(&mut self, state: &mut State) {
         let mut progress = false;
 
-        for square in *state.board.combined() & !state.get_steady() {
+        for square in *state.board.combined() & !state.steady.value {
             if state.origins(square).popcnt() == 1 {
                 let origin = state.origins(square).to_square();
                 progress |= state.update_destinies(origin, BitBoard::from_square(square))

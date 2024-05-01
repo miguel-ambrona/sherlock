@@ -28,7 +28,7 @@ impl Rule for RouteFromOriginsRule {
     fn apply(&mut self, state: &mut State) {
         let mut progress = false;
 
-        for square in state.board.combined() & !state.get_steady() {
+        for square in state.board.combined() & !state.steady.value {
             let piece = state.piece_type_on(square);
             let color = state.piece_color_on(square);
             let mut plausible_origins = EMPTY;

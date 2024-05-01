@@ -29,7 +29,7 @@ impl Rule for RouteToDestiniesRule {
         let mut progress = false;
 
         for color in ALL_COLORS {
-            for square in COLOR_ORIGINS[color.to_index()] & !state.get_steady() {
+            for square in COLOR_ORIGINS[color.to_index()] & !state.steady.value {
                 let piece = Board::default().piece_on(square).unwrap();
                 let nb_allowed_captures = state.nb_captures_upper_bound(square);
                 let mut reachable_destinies = EMPTY;

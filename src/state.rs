@@ -102,11 +102,57 @@ impl State {
         }
     }
 
-    /// The mask of pieces known to be steady.
-    pub(crate) fn get_steady(&self) -> BitBoard {
-        self.steady.value
+    /// Tells whether the piece on the given square was classified as steady.
+    #[inline]
+    pub fn is_steady(&self, square: Square) -> bool {
+        BitBoard::from_square(square) & self.steady.value != EMPTY
     }
 
+    /// The candidate origins of the piece on the given square.
+    #[inline]
+    pub fn origins(&self, square: Square) -> BitBoard {
+        self.origins.value[square.to_index()]
+    }
+
+    /// The candidate destinies of the piece that started on the given square.
+    #[inline]
+    pub fn destinies(&self, square: Square) -> BitBoard {
+        self.destinies.value[square.to_index()]
+    }
+
+    /// The known lower bound on the number of captures performed by the piece
+    /// that started the game on the given square.
+    #[inline]
+    pub fn nb_captures_lower_bound(&self, square: Square) -> i32 {
+        self.captures_bounds.value[square.to_index()].0
+    }
+
+    /// The known upper bound on the number of captures performed by the piece
+    /// that started the game on the given square.
+    #[inline]
+    pub fn nb_captures_upper_bound(&self, square: Square) -> i32 {
+        self.captures_bounds.value[square.to_index()].1
+    }
+
+    /// The piece type of the piece on the given square in the state's board.
+    /// Panics if the square is empty.
+    pub(crate) fn piece_type_on(&self, square: Square) -> Piece {
+        self.board.piece_on(square).unwrap()
+    }
+
+    /// The piece color of the piece on the given square in the state's board.
+    /// Panics if the square is empty.
+    pub(crate) fn piece_color_on(&self, square: Square) -> Color {
+        for color in ALL_COLORS {
+            if BitBoard::from_square(square) & self.board.color_combined(color) != EMPTY {
+                return color;
+            }
+        }
+        panic!("piece_color_on: the given square should not be empty");
+    }
+}
+
+impl State {
     /// Update the information on steady pieces with the given value.
     pub(crate) fn update_steady(&mut self, value: BitBoard) -> bool {
         if (self.steady.value | value) == self.steady.value {
@@ -114,17 +160,6 @@ impl State {
         }
         self.steady.value |= value;
         true
-    }
-
-    /// Tells whether the piece on the given square was classified as steady.
-    #[inline]
-    pub fn is_steady(&self, square: Square) -> bool {
-        BitBoard::from_square(square) & self.steady.value != EMPTY
-    }
-
-    /// The candidate origins array of all pieces.
-    pub(crate) fn get_origins(&self) -> [BitBoard; 64] {
-        self.origins.value
     }
 
     /// Update the candidate origins of the piece on the given square, with the
@@ -139,12 +174,6 @@ impl State {
             self.illegal = Some(true);
         }
         true
-    }
-
-    /// The candidate origins of the piece on the given square.
-    #[inline]
-    pub fn origins(&self, square: Square) -> BitBoard {
-        self.origins.value[square.to_index()]
     }
 
     /// Update the candidate destinies of the piece that started on the given
@@ -164,32 +193,6 @@ impl State {
         true
     }
 
-    /// The candidate destinies of the piece that started on the given square.
-    #[inline]
-    pub fn destinies(&self, square: Square) -> BitBoard {
-        self.destinies.value[square.to_index()]
-    }
-
-    /// A known lower-upper bound pair on the number of captures performed by
-    /// the piece that started the game on the given square.
-    pub(crate) fn captures_bounds(&self, square: Square) -> (i32, i32) {
-        self.captures_bounds.value[square.to_index()]
-    }
-
-    /// The known lower bound on the number of captures performed by the piece
-    /// that started the game on the given square.
-    #[inline]
-    pub fn nb_captures_lower_bound(&self, square: Square) -> i32 {
-        self.captures_bounds(square).0
-    }
-
-    /// The known upper bound on the number of captures performed by the piece
-    /// that started the game on the given square.
-    #[inline]
-    pub fn nb_captures_upper_bound(&self, square: Square) -> i32 {
-        self.captures_bounds(square).1
-    }
-
     /// Update the known lower bound on the number of captures performed by the
     /// piece that started the game on the given square, with the given
     /// value.
@@ -203,23 +206,6 @@ impl State {
     /// value.
     pub(crate) fn update_captures_upper_bound(&mut self, square: Square, bound: i32) {
         self.captures_bounds.value[square.to_index()].1 = bound;
-    }
-
-    /// The piece type of the piece on the given square in the state's board.
-    /// Panics if the square is empty.
-    pub(crate) fn piece_type_on(&self, square: Square) -> Piece {
-        self.board.piece_on(square).unwrap()
-    }
-
-    /// The piece color of the piece on the given square in the state's board.
-    /// Panics if the square is empty.
-    pub(crate) fn piece_color_on(&self, square: Square) -> Color {
-        for color in ALL_COLORS {
-            if BitBoard::from_square(square) & self.board.color_combined(color) != EMPTY {
-                return color;
-            }
-        }
-        panic!("piece_color_on: the given square should not be empty");
     }
 }
 
@@ -256,8 +242,9 @@ impl fmt::Display for State {
         let mut line = vec![];
         let mut cnt = 0;
         for square in *Board::default().combined() {
-            let (l, u) = self.captures_bounds(square);
-            line.push(format!(" {}: ({}, {})", square, l, u));
+            let lower = self.nb_captures_lower_bound(square);
+            let upper = self.nb_captures_upper_bound(square);
+            line.push(format!(" {}: ({}, {})", square, lower, upper));
             cnt += 1;
             if cnt % 8 == 0 {
                 lines.push(line.join(" "));
