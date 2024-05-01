@@ -47,7 +47,7 @@ mod tests {
     use chess::{Board, EMPTY};
 
     use super::*;
-    use crate::{rules::Rule, state::State, utils::*};
+    use crate::{analysis::State, rules::Rule, utils::*};
 
     #[test]
     fn test_destinies_rule() {

@@ -7,7 +7,7 @@
 use chess::{BitBoard, EMPTY};
 
 use super::Rule;
-use crate::{state::State, utils::distance_from_source};
+use crate::{analysis::State, utils::distance_from_source};
 
 #[derive(Debug)]
 pub struct RouteFromOriginsRule {

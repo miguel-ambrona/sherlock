@@ -1,11 +1,11 @@
 use chess::Board;
 
 use crate::{
+    analysis::State,
     rules::{
         CapturesBoundsRule, DestiniesRule, MaterialRule, OriginsRule, RefineOriginsRule,
         RouteFromOriginsRule, RouteToDestiniesRule, Rule, SteadyRule,
     },
-    state::State,
 };
 
 /// Initialize all the available rules.

@@ -7,7 +7,7 @@
 use chess::{BitBoard, Board, ALL_COLORS, EMPTY};
 
 use super::{Rule, COLOR_ORIGINS};
-use crate::{state::State, utils::distance_to_target};
+use crate::{analysis::State, utils::distance_to_target};
 
 #[derive(Debug)]
 pub struct RouteToDestiniesRule {

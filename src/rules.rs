@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::state::State;
+use crate::analysis::State;
 
 /// A legality rule, it updates the proof state about the legality of the
 /// position, after deriving new information.

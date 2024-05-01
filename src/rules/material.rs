@@ -6,7 +6,7 @@ use chess::{Board, ALL_COLORS};
 
 use super::Rule;
 use crate::{
-    state::State,
+    analysis::State,
     utils::{bishops, knights, pawns, queens, rooks, DARK_SQUARES, LIGHT_SQUARES},
 };
 
