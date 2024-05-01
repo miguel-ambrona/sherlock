@@ -61,6 +61,7 @@ impl MobilityGraph {
 
     /// Makes sure the edge between the given squares disappears from the graph.
     /// Returns `true` iff this operation modifies the graph.
+    #[allow(dead_code)]
     fn remove_edge(&mut self, source: Square, target: Square) -> bool {
         match self.edge(source, target) {
             None => false,
@@ -80,6 +81,7 @@ impl MobilityGraph {
 
     /// Makes sure the graph does not have outgoing edges from the given node.
     /// Returns `true` iff this operation modifies the graph.
+    #[allow(dead_code)]
     fn remove_outgoing_edges(&mut self, source: Square) -> bool {
         let outgoing_edges: Vec<_> = self
             .graph
@@ -92,6 +94,7 @@ impl MobilityGraph {
 
     /// Makes sure the graph does not have incoming edges to the given node.
     /// Returns `true` iff this operation modifies the graph.
+    #[allow(dead_code)]
     fn remove_incoming_edges(&mut self, target: Square) -> bool {
         let incoming_edges: Vec<_> = self
             .graph
