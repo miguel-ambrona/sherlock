@@ -21,11 +21,15 @@ impl Rule for RouteFromOriginsRule {
         }
     }
 
+    fn update(&mut self, analysis: &Analysis) {
+        self.mobility_counter = analysis.mobility.counter();
+    }
+
     fn is_applicable(&self, analysis: &Analysis) -> bool {
         self.mobility_counter != analysis.mobility.counter() || self.mobility_counter == 0
     }
 
-    fn apply(&mut self, analysis: &mut Analysis) {
+    fn apply(&self, analysis: &mut Analysis) -> bool {
         let mut progress = false;
 
         for square in analysis.board.combined() & !analysis.steady.value {
@@ -34,23 +38,16 @@ impl Rule for RouteFromOriginsRule {
             let mut plausible_origins = EMPTY;
             for origin in analysis.origins(square) {
                 let nb_allowed_captures = analysis.nb_captures_upper_bound(origin);
-                match distance_from_source(&analysis.mobility.value, origin, square, piece, color) {
-                    None => (),
-                    Some(n) => {
-                        if n <= nb_allowed_captures as u32 {
-                            plausible_origins |= BitBoard::from_square(origin);
-                        }
+                if let Some(n) =
+                    distance_from_source(&analysis.mobility.value, origin, square, piece, color)
+                {
+                    if n <= nb_allowed_captures as u32 {
+                        plausible_origins |= BitBoard::from_square(origin);
                     }
                 }
             }
             progress |= analysis.update_origins(square, plausible_origins);
         }
-
-        // update the rule state
-        self.mobility_counter = analysis.mobility.counter();
-
-        // report any progress
-        analysis.origins.increase_counter(progress);
-        analysis.progress |= progress;
+        progress
     }
 }

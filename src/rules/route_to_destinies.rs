@@ -21,11 +21,15 @@ impl Rule for RouteToDestiniesRule {
         }
     }
 
+    fn update(&mut self, analysis: &Analysis) {
+        self.mobility_counter = analysis.mobility.counter();
+    }
+
     fn is_applicable(&self, analysis: &Analysis) -> bool {
         self.mobility_counter != analysis.mobility.counter() || self.mobility_counter == 0
     }
 
-    fn apply(&mut self, analysis: &mut Analysis) {
+    fn apply(&self, analysis: &mut Analysis) -> bool {
         let mut progress = false;
 
         for color in ALL_COLORS {
@@ -34,30 +38,17 @@ impl Rule for RouteToDestiniesRule {
                 let nb_allowed_captures = analysis.nb_captures_upper_bound(square);
                 let mut reachable_destinies = EMPTY;
                 for destiny in analysis.destinies(square) {
-                    match distance_to_target(
-                        &analysis.mobility.value,
-                        square,
-                        destiny,
-                        piece,
-                        color,
-                    ) {
-                        None => (),
-                        Some(n) => {
-                            if n <= nb_allowed_captures as u32 {
-                                reachable_destinies |= BitBoard::from_square(destiny);
-                            }
+                    if let Some(n) =
+                        distance_to_target(&analysis.mobility.value, square, destiny, piece, color)
+                    {
+                        if n <= nb_allowed_captures as u32 {
+                            reachable_destinies |= BitBoard::from_square(destiny);
                         }
                     }
                 }
                 progress |= analysis.update_destinies(square, reachable_destinies);
             }
         }
-
-        // update the rule state
-        self.mobility_counter = analysis.mobility.counter();
-
-        // report any progress
-        analysis.destinies.increase_counter(progress);
-        analysis.progress |= progress;
+        progress
     }
 }

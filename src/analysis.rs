@@ -21,13 +21,6 @@ impl<T> Counter<T> {
     pub(crate) fn counter(&self) -> usize {
         self.counter
     }
-
-    #[inline]
-    pub(crate) fn increase_counter(&mut self, progress: bool) {
-        if progress {
-            self.counter += 1
-        }
-    }
 }
 
 /// Type `Analysis` contains all the information that has been derived about the
@@ -78,10 +71,6 @@ pub struct Analysis {
     /// `Some(true)` if the position has been determined to be illegal, and
     /// `Some(false)` if the position is known to be legal.
     pub(crate) illegal: Option<bool>,
-
-    /// A flag indicating whether there has been recent progress in updating the
-    /// analysis (used to know when to stop applying rules).
-    pub(crate) progress: bool,
 }
 
 impl Analysis {
@@ -98,7 +87,6 @@ impl Analysis {
                 core::array::from_fn(|i| MobilityGraph::init(ALL_PIECES[i], Color::Black)),
             ]),
             illegal: None,
-            progress: false,
         }
     }
 
@@ -159,6 +147,7 @@ impl Analysis {
             return false;
         }
         self.steady.value |= value;
+        self.steady.counter += 1;
         true
     }
 
@@ -169,6 +158,8 @@ impl Analysis {
             return false;
         }
         self.origins.value[square.to_index()] = value;
+        self.origins.counter += 1;
+
         // if the set of candidate origins of a piece is empty, the position is illegal
         if value == EMPTY {
             self.illegal = Some(true);
@@ -185,6 +176,8 @@ impl Analysis {
             return false;
         }
         self.destinies.value[square.to_index()] = value;
+        self.destinies.counter += 1;
+
         // if the set of candidate destinies of a piece is empty, the position is
         // illegal
         if value == EMPTY {
@@ -197,15 +190,25 @@ impl Analysis {
     /// piece that started the game on the given square, with the given
     /// value.
     #[cfg(test)]
-    pub(crate) fn update_captures_lower_bound(&mut self, square: Square, bound: i32) {
+    pub(crate) fn update_captures_lower_bound(&mut self, square: Square, bound: i32) -> bool {
+        if self.captures_bounds.value[square.to_index()].0 == bound {
+            return false;
+        }
         self.captures_bounds.value[square.to_index()].0 = bound;
+        self.captures_bounds.counter += 1;
+        true
     }
 
     /// Update the known upper bound on the number of captures performed by the
     /// piece that started the game on the given square, with the given
     /// value.
-    pub(crate) fn update_captures_upper_bound(&mut self, square: Square, bound: i32) {
+    pub(crate) fn update_captures_upper_bound(&mut self, square: Square, bound: i32) -> bool {
+        if self.captures_bounds.value[square.to_index()].1 == bound {
+            return false;
+        }
         self.captures_bounds.value[square.to_index()].1 = bound;
+        self.captures_bounds.counter += 1;
+        true
     }
 }
 

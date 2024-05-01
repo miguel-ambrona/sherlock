@@ -22,20 +22,17 @@ impl Rule for SteadyRule {
         SteadyRule { steady_counter: 0 }
     }
 
+    fn update(&mut self, analysis: &Analysis) {
+        self.steady_counter = analysis.steady.counter();
+    }
+
     fn is_applicable(&self, analysis: &Analysis) -> bool {
         self.steady_counter != analysis.steady.counter() || self.steady_counter == 0
     }
 
-    fn apply(&mut self, analysis: &mut Analysis) {
+    fn apply(&self, analysis: &mut Analysis) -> bool {
         let new_steady = steady_pieces(&analysis.board, &analysis.steady.value);
-        let progress = analysis.update_steady(new_steady);
-
-        // update the rule state
-        self.steady_counter = analysis.steady.counter();
-
-        // report any progress
-        analysis.steady.increase_counter(progress);
-        analysis.progress |= progress;
+        analysis.update_steady(new_steady)
     }
 }
 

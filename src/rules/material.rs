@@ -26,14 +26,20 @@ impl Rule for MaterialRule {
         MaterialRule { applied: false }
     }
 
+    fn update(&mut self, _analysis: &Analysis) {
+        self.applied = true;
+    }
+
     fn is_applicable(&self, _analysis: &Analysis) -> bool {
         !self.applied
     }
 
-    fn apply(&mut self, analysis: &mut Analysis) {
-        self.applied = true;
+    fn apply(&self, analysis: &mut Analysis) -> bool {
         if illegal_material(&analysis.board) {
-            analysis.illegal = Some(true)
+            analysis.illegal = Some(true);
+            true
+        } else {
+            false
         }
     }
 }

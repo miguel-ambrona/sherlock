@@ -240,7 +240,7 @@ mod tests {
         );
 
         // it can also have come from B2, although it is a dark square, because
-        // it could have been a promoted pawn, at least a capture is needed, though
+        // it could have been a promoted pawn, at least a capture is needed though,
         // to switch to a file with a light promoting square
         assert_eq!(
             distance_from_source(&graphs, B2, H5, Bishop, White),
@@ -307,7 +307,7 @@ mod tests {
         graphs[White.to_index()][Pawn.to_index()].remove_edge(A2, A4);
         assert_eq!(distance_to_target(&graphs, A2, C4, Pawn, White), Some(1));
 
-        // finally, if we disallow promotions on B8, it will take at least 2 captures
+        // finally, if we also disallow promotions on B8, it takes at least 2 captures
         graphs[White.to_index()][Pawn.to_index()].remove_incoming_edges(B8);
         assert_eq!(distance_to_target(&graphs, A2, C4, Pawn, White), Some(2));
     }

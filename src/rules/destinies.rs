@@ -17,11 +17,15 @@ impl Rule for DestiniesRule {
         DestiniesRule { origins_counter: 0 }
     }
 
+    fn update(&mut self, analysis: &Analysis) {
+        self.origins_counter = analysis.origins.counter();
+    }
+
     fn is_applicable(&self, analysis: &Analysis) -> bool {
         self.origins_counter != analysis.origins.counter() || self.origins_counter == 0
     }
 
-    fn apply(&mut self, analysis: &mut Analysis) {
+    fn apply(&self, analysis: &mut Analysis) -> bool {
         let mut progress = false;
 
         for square in *analysis.board.combined() & !analysis.steady.value {
@@ -30,13 +34,7 @@ impl Rule for DestiniesRule {
                 progress |= analysis.update_destinies(origin, BitBoard::from_square(square))
             }
         }
-
-        // update the rule state
-        self.origins_counter = analysis.origins.counter();
-
-        // report any progress
-        analysis.destinies.increase_counter(progress);
-        analysis.progress |= progress;
+        progress
     }
 }
 
@@ -53,7 +51,7 @@ mod tests {
     fn test_destinies_rule() {
         let board = Board::from_str("1k6/8/8/8/8/8/8/K7 w - -").expect("Valid Position");
         let mut analysis = Analysis::new(&board);
-        let mut destinies_rule = DestiniesRule::new();
+        let destinies_rule = DestiniesRule::new();
 
         destinies_rule.apply(&mut analysis);
 

@@ -26,6 +26,11 @@ impl Rule for CapturesBoundsRule {
         }
     }
 
+    fn update(&mut self, analysis: &Analysis) {
+        self.captures_bounds_counter = analysis.captures_bounds.counter();
+        self.steady_counter = analysis.steady.counter();
+    }
+
     fn is_applicable(&self, analysis: &Analysis) -> bool {
         self.captures_bounds_counter != analysis.captures_bounds.counter()
             || self.steady_counter != analysis.steady.counter()
@@ -33,7 +38,7 @@ impl Rule for CapturesBoundsRule {
             || self.steady_counter == 0
     }
 
-    fn apply(&mut self, analysis: &mut Analysis) {
+    fn apply(&self, analysis: &mut Analysis) -> bool {
         let mut progress = false;
         for color in ALL_COLORS {
             // count the number of missing opponents and add all our lower bounds
@@ -45,7 +50,7 @@ impl Rule for CapturesBoundsRule {
             for square in *Board::default().color_combined(color) {
                 // steady pieces never moved, thus never captured
                 if analysis.is_steady(square) {
-                    analysis.update_captures_upper_bound(square, 0);
+                    progress |= analysis.update_captures_upper_bound(square, 0);
                 }
 
                 // the number of captures of a piece can be upper bounded by the number of
@@ -53,8 +58,7 @@ impl Rule for CapturesBoundsRule {
                 let lower = analysis.nb_captures_lower_bound(square);
                 let new_upper = nb_missing_opponents - (sum_lower_bounds - lower);
                 if new_upper < analysis.nb_captures_upper_bound(square) {
-                    analysis.update_captures_upper_bound(square, new_upper);
-                    progress = true;
+                    progress |= analysis.update_captures_upper_bound(square, new_upper);
                 }
 
                 // if the bounds ever become incompatible, the position must be illegal
@@ -63,14 +67,7 @@ impl Rule for CapturesBoundsRule {
                 }
             }
         }
-
-        // update the rule state
-        self.captures_bounds_counter = analysis.captures_bounds.counter();
-        self.steady_counter = analysis.steady.counter();
-
-        // report any progress
-        analysis.captures_bounds.increase_counter(progress);
-        analysis.progress |= progress;
+        progress
     }
 }
 
@@ -88,7 +85,7 @@ mod tests {
         // White is missing 10 pieces, Black is missing 8
         let board = Board::from_str("rnbqkbnr/8/8/8/8/8/8/1NBQKBN1 w - -").expect("Valid Position");
         let mut analysis = Analysis::new(&board);
-        let mut captures_rule = CapturesBoundsRule::new();
+        let captures_rule = CapturesBoundsRule::new();
 
         let bounds = |analysis: &Analysis, square: Square| -> (i32, i32) {
             (
