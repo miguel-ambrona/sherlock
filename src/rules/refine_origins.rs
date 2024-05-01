@@ -27,7 +27,7 @@ impl Rule for RefineOriginsRule {
         self.origins_counter != analysis.origins.counter() || self.origins_counter == 0
     }
 
-    fn apply(&self, analysis: &mut Analysis) {
+    fn apply(&self, analysis: &mut Analysis) -> bool {
         let mut progress = false;
 
         for color in ALL_COLORS {
@@ -52,6 +52,6 @@ impl Rule for RefineOriginsRule {
 
         // report any progress
         analysis.origins.increase_counter(progress);
-        analysis.progress |= progress;
+        progress
     }
 }

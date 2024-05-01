@@ -31,7 +31,7 @@ impl Rule for OriginsRule {
         self.steady != analysis.steady.value || self.steady == EMPTY
     }
 
-    fn apply(&self, analysis: &mut Analysis) {
+    fn apply(&self, analysis: &mut Analysis) -> bool {
         let mut progress = false;
 
         for square in *analysis.board.combined() & analysis.steady.value & !self.steady {
@@ -49,7 +49,7 @@ impl Rule for OriginsRule {
 
         // report any progress
         analysis.origins.increase_counter(progress);
-        analysis.progress |= progress;
+        progress
     }
 }
 

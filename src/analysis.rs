@@ -78,10 +78,6 @@ pub struct Analysis {
     /// `Some(true)` if the position has been determined to be illegal, and
     /// `Some(false)` if the position is known to be legal.
     pub(crate) illegal: Option<bool>,
-
-    /// A flag indicating whether there has been recent progress in updating the
-    /// analysis (used to know when to stop applying rules).
-    pub(crate) progress: bool,
 }
 
 impl Analysis {
@@ -98,7 +94,6 @@ impl Analysis {
                 core::array::from_fn(|i| MobilityGraph::init(ALL_PIECES[i], Color::Black)),
             ]),
             illegal: None,
-            progress: false,
         }
     }
 

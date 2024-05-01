@@ -34,9 +34,12 @@ impl Rule for MaterialRule {
         !self.applied
     }
 
-    fn apply(&self, analysis: &mut Analysis) {
+    fn apply(&self, analysis: &mut Analysis) -> bool {
         if illegal_material(&analysis.board) {
-            analysis.illegal = Some(true)
+            analysis.illegal = Some(true);
+            true
+        } else {
+            false
         }
     }
 }

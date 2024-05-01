@@ -30,13 +30,13 @@ impl Rule for SteadyRule {
         self.steady_counter != analysis.steady.counter() || self.steady_counter == 0
     }
 
-    fn apply(&self, analysis: &mut Analysis) {
+    fn apply(&self, analysis: &mut Analysis) -> bool {
         let new_steady = steady_pieces(&analysis.board, &analysis.steady.value);
         let progress = analysis.update_steady(new_steady);
 
         // report any progress
         analysis.steady.increase_counter(progress);
-        analysis.progress |= progress;
+        progress
     }
 }
 

@@ -25,7 +25,7 @@ impl Rule for DestiniesRule {
         self.origins_counter != analysis.origins.counter() || self.origins_counter == 0
     }
 
-    fn apply(&self, analysis: &mut Analysis) {
+    fn apply(&self, analysis: &mut Analysis) -> bool {
         let mut progress = false;
 
         for square in *analysis.board.combined() & !analysis.steady.value {
@@ -37,7 +37,7 @@ impl Rule for DestiniesRule {
 
         // report any progress
         analysis.destinies.increase_counter(progress);
-        analysis.progress |= progress;
+        progress
     }
 }
 

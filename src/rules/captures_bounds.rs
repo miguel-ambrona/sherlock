@@ -38,7 +38,7 @@ impl Rule for CapturesBoundsRule {
             || self.steady_counter == 0
     }
 
-    fn apply(&self, analysis: &mut Analysis) {
+    fn apply(&self, analysis: &mut Analysis) -> bool {
         let mut progress = false;
         for color in ALL_COLORS {
             // count the number of missing opponents and add all our lower bounds
@@ -71,7 +71,7 @@ impl Rule for CapturesBoundsRule {
 
         // report any progress
         analysis.captures_bounds.increase_counter(progress);
-        analysis.progress |= progress;
+        progress
     }
 }
 

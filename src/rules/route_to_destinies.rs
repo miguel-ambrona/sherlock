@@ -29,7 +29,7 @@ impl Rule for RouteToDestiniesRule {
         self.mobility_counter != analysis.mobility.counter() || self.mobility_counter == 0
     }
 
-    fn apply(&self, analysis: &mut Analysis) {
+    fn apply(&self, analysis: &mut Analysis) -> bool {
         let mut progress = false;
 
         for color in ALL_COLORS {
@@ -59,6 +59,6 @@ impl Rule for RouteToDestiniesRule {
 
         // report any progress
         analysis.destinies.increase_counter(progress);
-        analysis.progress |= progress;
+        progress
     }
 }

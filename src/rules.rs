@@ -17,9 +17,10 @@ pub trait Rule: fmt::Debug {
     /// apply a rule if we are sure it will not derive any new information).
     fn is_applicable(&self, analysis: &Analysis) -> bool;
 
-    /// Applies the rule, possibly modifying the legality analysis and the
-    /// rule's internal state.
-    fn apply(&self, analysis: &mut Analysis);
+    /// Applies the rule, possibly modifying the legality analysis after having
+    /// derived new information.
+    /// Returns `true` iff progress has been made.
+    fn apply(&self, analysis: &mut Analysis) -> bool;
 }
 
 mod material;

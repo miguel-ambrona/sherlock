@@ -41,14 +41,14 @@ pub fn is_legal(board: &Board) -> bool {
     let mut rules = init_rules();
     let mut analysis = Analysis::new(board);
     loop {
-        analysis.progress = false;
+        let mut progress = false;
         for rule in rules.iter_mut() {
             if rule.is_applicable(&analysis) && analysis.illegal.is_none() {
-                rule.apply(&mut analysis);
                 rule.update(&analysis);
+                progress |= rule.apply(&mut analysis);
             }
         }
-        if !analysis.progress || analysis.illegal.is_some() {
+        if !progress || analysis.illegal.is_some() {
             break;
         }
     }
