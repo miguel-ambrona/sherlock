@@ -50,7 +50,7 @@ impl Rule for CapturesBoundsRule {
             for square in *Board::default().color_combined(color) {
                 // steady pieces never moved, thus never captured
                 if analysis.is_steady(square) {
-                    analysis.update_captures_upper_bound(square, 0);
+                    progress |= analysis.update_captures_upper_bound(square, 0);
                 }
 
                 // the number of captures of a piece can be upper bounded by the number of
@@ -58,8 +58,7 @@ impl Rule for CapturesBoundsRule {
                 let lower = analysis.nb_captures_lower_bound(square);
                 let new_upper = nb_missing_opponents - (sum_lower_bounds - lower);
                 if new_upper < analysis.nb_captures_upper_bound(square) {
-                    analysis.update_captures_upper_bound(square, new_upper);
-                    progress = true;
+                    progress |= analysis.update_captures_upper_bound(square, new_upper);
                 }
 
                 // if the bounds ever become incompatible, the position must be illegal
@@ -68,9 +67,6 @@ impl Rule for CapturesBoundsRule {
                 }
             }
         }
-
-        // report any progress
-        analysis.captures_bounds.increase_counter(progress);
         progress
     }
 }

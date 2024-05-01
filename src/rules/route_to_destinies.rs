@@ -56,9 +56,6 @@ impl Rule for RouteToDestiniesRule {
                 progress |= analysis.update_destinies(square, reachable_destinies);
             }
         }
-
-        // report any progress
-        analysis.destinies.increase_counter(progress);
         progress
     }
 }

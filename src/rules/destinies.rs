@@ -34,9 +34,6 @@ impl Rule for DestiniesRule {
                 progress |= analysis.update_destinies(origin, BitBoard::from_square(square))
             }
         }
-
-        // report any progress
-        analysis.destinies.increase_counter(progress);
         progress
     }
 }

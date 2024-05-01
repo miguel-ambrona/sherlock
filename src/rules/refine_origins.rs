@@ -49,9 +49,6 @@ impl Rule for RefineOriginsRule {
                 }
             }
         }
-
-        // report any progress
-        analysis.origins.increase_counter(progress);
         progress
     }
 }

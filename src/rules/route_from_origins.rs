@@ -49,9 +49,6 @@ impl Rule for RouteFromOriginsRule {
             }
             progress |= analysis.update_origins(square, plausible_origins);
         }
-
-        // report any progress
-        analysis.origins.increase_counter(progress);
         progress
     }
 }

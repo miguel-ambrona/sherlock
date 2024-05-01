@@ -46,9 +46,6 @@ impl Rule for OriginsRule {
                 & origins_of_piece_on(analysis.piece_type_on(square), square);
             progress |= analysis.update_origins(square, square_origins);
         }
-
-        // report any progress
-        analysis.origins.increase_counter(progress);
         progress
     }
 }
