@@ -19,26 +19,26 @@ impl Rule for RefineOriginsRule {
         RefineOriginsRule { origins_counter: 0 }
     }
 
-    fn is_applicable(&self, state: &Analysis) -> bool {
-        self.origins_counter != state.origins.counter() || self.origins_counter == 0
+    fn is_applicable(&self, analysis: &Analysis) -> bool {
+        self.origins_counter != analysis.origins.counter() || self.origins_counter == 0
     }
 
-    fn apply(&mut self, state: &mut Analysis) {
+    fn apply(&mut self, analysis: &mut Analysis) {
         let mut progress = false;
 
         for color in ALL_COLORS {
             // We iterate up to k = 10, since that is the maximum number of candidate
             // origins of any piece after applying the origins rule.
             for k in 1..=10 {
-                let mut iter = *state.board.color_combined(color);
+                let mut iter = *analysis.board.color_combined(color);
                 loop {
-                    match find_k_group(k, &state.origins.value, iter) {
+                    match find_k_group(k, &analysis.origins.value, iter) {
                         None => break,
                         Some((group, remaining)) => {
                             iter = remaining;
                             for square in iter {
-                                let square_origins = state.origins(square) & !group;
-                                progress |= state.update_origins(square, square_origins);
+                                let square_origins = analysis.origins(square) & !group;
+                                progress |= analysis.update_origins(square, square_origins);
                             }
                         }
                     }
@@ -47,10 +47,10 @@ impl Rule for RefineOriginsRule {
         }
 
         // update the rule state
-        self.origins_counter = state.origins.counter();
+        self.origins_counter = analysis.origins.counter();
 
         // report any progress
-        state.origins.increase_counter(progress);
-        state.progress |= progress;
+        analysis.origins.increase_counter(progress);
+        analysis.progress |= progress;
     }
 }

@@ -80,12 +80,12 @@ pub struct Analysis {
     pub(crate) illegal: Option<bool>,
 
     /// A flag indicating whether there has been recent progress in updating the
-    /// state (used to know when to stop applying rules).
+    /// analysis (used to know when to stop applying rules).
     pub(crate) progress: bool,
 }
 
 impl Analysis {
-    /// Initializes a proof state for the given board.
+    /// Initializes a legality analysis for the given board.
     pub fn new(board: &Board) -> Self {
         Analysis {
             board: *board,
@@ -134,14 +134,14 @@ impl Analysis {
         self.captures_bounds.value[square.to_index()].1
     }
 
-    /// The piece type of the piece on the given square in the state's board.
+    /// The piece type of the piece on the given square in the analysis's board.
     /// Panics if the square is empty.
     pub(crate) fn piece_type_on(&self, square: Square) -> Piece {
         self.board.piece_on(square).unwrap()
     }
 
-    /// The piece color of the piece on the given square in the state's board.
-    /// Panics if the square is empty.
+    /// The piece color of the piece on the given square in the analysis's
+    /// board. Panics if the square is empty.
     pub(crate) fn piece_color_on(&self, square: Square) -> Color {
         for color in ALL_COLORS {
             if BitBoard::from_square(square) & self.board.color_combined(color) != EMPTY {

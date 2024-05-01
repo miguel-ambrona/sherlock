@@ -21,20 +21,26 @@ impl Rule for RouteToDestiniesRule {
         }
     }
 
-    fn is_applicable(&self, state: &Analysis) -> bool {
-        self.mobility_counter != state.mobility.counter() || self.mobility_counter == 0
+    fn is_applicable(&self, analysis: &Analysis) -> bool {
+        self.mobility_counter != analysis.mobility.counter() || self.mobility_counter == 0
     }
 
-    fn apply(&mut self, state: &mut Analysis) {
+    fn apply(&mut self, analysis: &mut Analysis) {
         let mut progress = false;
 
         for color in ALL_COLORS {
-            for square in COLOR_ORIGINS[color.to_index()] & !state.steady.value {
+            for square in COLOR_ORIGINS[color.to_index()] & !analysis.steady.value {
                 let piece = Board::default().piece_on(square).unwrap();
-                let nb_allowed_captures = state.nb_captures_upper_bound(square);
+                let nb_allowed_captures = analysis.nb_captures_upper_bound(square);
                 let mut reachable_destinies = EMPTY;
-                for destiny in state.destinies(square) {
-                    match distance_to_target(&state.mobility.value, square, destiny, piece, color) {
+                for destiny in analysis.destinies(square) {
+                    match distance_to_target(
+                        &analysis.mobility.value,
+                        square,
+                        destiny,
+                        piece,
+                        color,
+                    ) {
                         None => (),
                         Some(n) => {
                             if n <= nb_allowed_captures as u32 {
@@ -43,15 +49,15 @@ impl Rule for RouteToDestiniesRule {
                         }
                     }
                 }
-                progress |= state.update_destinies(square, reachable_destinies);
+                progress |= analysis.update_destinies(square, reachable_destinies);
             }
         }
 
         // update the rule state
-        self.mobility_counter = state.mobility.counter();
+        self.mobility_counter = analysis.mobility.counter();
 
         // report any progress
-        state.destinies.increase_counter(progress);
-        state.progress |= progress;
+        analysis.destinies.increase_counter(progress);
+        analysis.progress |= progress;
     }
 }

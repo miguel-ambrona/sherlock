@@ -23,32 +23,32 @@ impl Rule for OriginsRule {
         OriginsRule { steady: EMPTY }
     }
 
-    fn is_applicable(&self, state: &Analysis) -> bool {
-        self.steady != state.steady.value || self.steady == EMPTY
+    fn is_applicable(&self, analysis: &Analysis) -> bool {
+        self.steady != analysis.steady.value || self.steady == EMPTY
     }
 
-    fn apply(&mut self, state: &mut Analysis) {
+    fn apply(&mut self, analysis: &mut Analysis) {
         let mut progress = false;
 
-        for square in *state.board.combined() & state.steady.value & !self.steady {
+        for square in *analysis.board.combined() & analysis.steady.value & !self.steady {
             let square_origins = BitBoard::from_square(square);
-            progress |= state.update_origins(square, square_origins);
+            progress |= analysis.update_origins(square, square_origins);
         }
 
-        for square in *state.board.combined() & !state.steady.value {
-            let square_origins = state.origins(square)
-                & !state.steady.value
-                & COLOR_ORIGINS[state.piece_color_on(square).to_index()]
-                & origins_of_piece_on(state.piece_type_on(square), square);
-            progress |= state.update_origins(square, square_origins);
+        for square in *analysis.board.combined() & !analysis.steady.value {
+            let square_origins = analysis.origins(square)
+                & !analysis.steady.value
+                & COLOR_ORIGINS[analysis.piece_color_on(square).to_index()]
+                & origins_of_piece_on(analysis.piece_type_on(square), square);
+            progress |= analysis.update_origins(square, square_origins);
         }
 
         // update the rule state
-        self.steady = state.steady.value;
+        self.steady = analysis.steady.value;
 
         // report any progress
-        state.origins.increase_counter(progress);
-        state.progress |= progress;
+        analysis.origins.increase_counter(progress);
+        analysis.progress |= progress;
     }
 }
 

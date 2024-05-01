@@ -39,17 +39,17 @@ fn init_rules() -> Vec<Box<dyn Rule>> {
 /// ```
 pub fn is_legal(board: &Board) -> bool {
     let mut rules = init_rules();
-    let mut state = Analysis::new(board);
+    let mut analysis = Analysis::new(board);
     loop {
-        state.progress = false;
+        analysis.progress = false;
         for rule in rules.iter_mut() {
-            if rule.is_applicable(&state) && state.illegal.is_none() {
-                rule.apply(&mut state);
+            if rule.is_applicable(&analysis) && analysis.illegal.is_none() {
+                rule.apply(&mut analysis);
             }
         }
-        if !state.progress || state.illegal.is_some() {
+        if !analysis.progress || analysis.illegal.is_some() {
             break;
         }
     }
-    state.illegal != Some(true)
+    analysis.illegal != Some(true)
 }
