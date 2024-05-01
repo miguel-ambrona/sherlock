@@ -10,7 +10,7 @@
 
 use chess::{Board, ALL_COLORS};
 
-use super::{Rule, State, COLOR_ORIGINS};
+use super::{Analysis, Rule, COLOR_ORIGINS};
 
 #[derive(Debug)]
 pub struct CapturesBoundsRule {
@@ -26,14 +26,14 @@ impl Rule for CapturesBoundsRule {
         }
     }
 
-    fn is_applicable(&self, state: &State) -> bool {
+    fn is_applicable(&self, state: &Analysis) -> bool {
         self.captures_bounds_counter != state.captures_bounds.counter()
             || self.steady_counter != state.steady.counter()
             || self.captures_bounds_counter == 0
             || self.steady_counter == 0
     }
 
-    fn apply(&mut self, state: &mut State) {
+    fn apply(&mut self, state: &mut Analysis) {
         let mut progress = false;
         for color in ALL_COLORS {
             // count the number of missing opponents and add all our lower bounds
@@ -81,16 +81,16 @@ mod tests {
     use chess::{Board, Square};
 
     use super::*;
-    use crate::{analysis::State, rules::Rule, utils::*};
+    use crate::{rules::Rule, utils::*};
 
     #[test]
     fn test_captures_bounds_rule() {
         // White is missing 10 pieces, Black is missing 8
         let board = Board::from_str("rnbqkbnr/8/8/8/8/8/8/1NBQKBN1 w - -").expect("Valid Position");
-        let mut state = State::new(&board);
+        let mut state = Analysis::new(&board);
         let mut captures_rule = CapturesBoundsRule::new();
 
-        let bounds = |state: &State, square: Square| -> (i32, i32) {
+        let bounds = |state: &Analysis, square: Square| -> (i32, i32) {
             (
                 state.nb_captures_lower_bound(square),
                 state.nb_captures_upper_bound(square),

@@ -5,7 +5,7 @@
 
 use chess::BitBoard;
 
-use super::{Rule, State};
+use super::{Analysis, Rule};
 
 #[derive(Debug)]
 pub struct DestiniesRule {
@@ -17,11 +17,11 @@ impl Rule for DestiniesRule {
         DestiniesRule { origins_counter: 0 }
     }
 
-    fn is_applicable(&self, state: &State) -> bool {
+    fn is_applicable(&self, state: &Analysis) -> bool {
         self.origins_counter != state.origins.counter() || self.origins_counter == 0
     }
 
-    fn apply(&mut self, state: &mut State) {
+    fn apply(&mut self, state: &mut Analysis) {
         let mut progress = false;
 
         for square in *state.board.combined() & !state.steady.value {
@@ -47,12 +47,12 @@ mod tests {
     use chess::{Board, EMPTY};
 
     use super::*;
-    use crate::{analysis::State, rules::Rule, utils::*};
+    use crate::{rules::Rule, utils::*};
 
     #[test]
     fn test_destinies_rule() {
         let board = Board::from_str("1k6/8/8/8/8/8/8/K7 w - -").expect("Valid Position");
-        let mut state = State::new(&board);
+        let mut state = Analysis::new(&board);
         let mut destinies_rule = DestiniesRule::new();
 
         destinies_rule.apply(&mut state);

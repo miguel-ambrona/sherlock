@@ -7,7 +7,7 @@
 use chess::{BitBoard, Board, ALL_COLORS, EMPTY};
 
 use super::{Rule, COLOR_ORIGINS};
-use crate::{analysis::State, utils::distance_to_target};
+use crate::{analysis::Analysis, utils::distance_to_target};
 
 #[derive(Debug)]
 pub struct RouteToDestiniesRule {
@@ -21,11 +21,11 @@ impl Rule for RouteToDestiniesRule {
         }
     }
 
-    fn is_applicable(&self, state: &State) -> bool {
+    fn is_applicable(&self, state: &Analysis) -> bool {
         self.mobility_counter != state.mobility.counter() || self.mobility_counter == 0
     }
 
-    fn apply(&mut self, state: &mut State) {
+    fn apply(&mut self, state: &mut Analysis) {
         let mut progress = false;
 
         for color in ALL_COLORS {
@@ -34,7 +34,7 @@ impl Rule for RouteToDestiniesRule {
                 let nb_allowed_captures = state.nb_captures_upper_bound(square);
                 let mut reachable_destinies = EMPTY;
                 for destiny in state.destinies(square) {
-                    match distance_to_target(state, square, destiny, piece, color) {
+                    match distance_to_target(&state.mobility.value, square, destiny, piece, color) {
                         None => (),
                         Some(n) => {
                             if n <= nb_allowed_captures as u32 {

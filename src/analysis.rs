@@ -30,10 +30,10 @@ impl<T> Counter<T> {
     }
 }
 
-/// Type `State` contains all the information that has been derived about the
+/// Type `Analysis` contains all the information that has been derived about the
 /// legality of the position of interest.
 
-pub struct State {
+pub struct Analysis {
     /// The position being analyzed.
     pub(crate) board: Board,
 
@@ -84,10 +84,10 @@ pub struct State {
     pub(crate) progress: bool,
 }
 
-impl State {
+impl Analysis {
     /// Initializes a proof state for the given board.
     pub fn new(board: &Board) -> Self {
-        State {
+        Analysis {
             board: *board,
             steady: Counter::new(EMPTY),
             origins: Counter::new([!EMPTY; 64]),
@@ -152,7 +152,7 @@ impl State {
     }
 }
 
-impl State {
+impl Analysis {
     /// Update the information on steady pieces with the given value.
     pub(crate) fn update_steady(&mut self, value: BitBoard) -> bool {
         if (self.steady.value | value) == self.steady.value {
@@ -209,7 +209,7 @@ impl State {
     }
 }
 
-impl fmt::Display for State {
+impl fmt::Display for Analysis {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "FEN: {}\n", self.board,)?;
         writeln!(f, "steady:\n{}", self.steady.value.reverse_colors())?;

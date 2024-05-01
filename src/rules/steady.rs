@@ -9,7 +9,7 @@
 
 use chess::{BitBoard, Board, CastleRights, Piece, ALL_COLORS};
 
-use super::{Rule, State};
+use super::{Analysis, Rule};
 use crate::utils::predecessors;
 
 #[derive(Debug)]
@@ -22,11 +22,11 @@ impl Rule for SteadyRule {
         SteadyRule { steady_counter: 0 }
     }
 
-    fn is_applicable(&self, state: &State) -> bool {
+    fn is_applicable(&self, state: &Analysis) -> bool {
         self.steady_counter != state.steady.counter() || self.steady_counter == 0
     }
 
-    fn apply(&mut self, state: &mut State) {
+    fn apply(&mut self, state: &mut Analysis) {
         let new_steady = steady_pieces(&state.board, &state.steady.value);
         let progress = state.update_steady(new_steady);
 

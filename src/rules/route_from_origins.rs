@@ -7,7 +7,7 @@
 use chess::{BitBoard, EMPTY};
 
 use super::Rule;
-use crate::{analysis::State, utils::distance_from_source};
+use crate::{analysis::Analysis, utils::distance_from_source};
 
 #[derive(Debug)]
 pub struct RouteFromOriginsRule {
@@ -21,11 +21,11 @@ impl Rule for RouteFromOriginsRule {
         }
     }
 
-    fn is_applicable(&self, state: &State) -> bool {
+    fn is_applicable(&self, state: &Analysis) -> bool {
         self.mobility_counter != state.mobility.counter() || self.mobility_counter == 0
     }
 
-    fn apply(&mut self, state: &mut State) {
+    fn apply(&mut self, state: &mut Analysis) {
         let mut progress = false;
 
         for square in state.board.combined() & !state.steady.value {
@@ -34,7 +34,7 @@ impl Rule for RouteFromOriginsRule {
             let mut plausible_origins = EMPTY;
             for origin in state.origins(square) {
                 let nb_allowed_captures = state.nb_captures_upper_bound(origin);
-                match distance_from_source(state, origin, square, piece, color) {
+                match distance_from_source(&state.mobility.value, origin, square, piece, color) {
                     None => (),
                     Some(n) => {
                         if n <= nb_allowed_captures as u32 {

@@ -6,7 +6,7 @@
 
 use chess::ALL_COLORS;
 
-use super::{Rule, State};
+use super::{Analysis, Rule};
 use crate::utils::find_k_group;
 
 #[derive(Debug)]
@@ -19,11 +19,11 @@ impl Rule for RefineOriginsRule {
         RefineOriginsRule { origins_counter: 0 }
     }
 
-    fn is_applicable(&self, state: &State) -> bool {
+    fn is_applicable(&self, state: &Analysis) -> bool {
         self.origins_counter != state.origins.counter() || self.origins_counter == 0
     }
 
-    fn apply(&mut self, state: &mut State) {
+    fn apply(&mut self, state: &mut Analysis) {
         let mut progress = false;
 
         for color in ALL_COLORS {

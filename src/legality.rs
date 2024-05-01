@@ -1,7 +1,7 @@
 use chess::Board;
 
 use crate::{
-    analysis::State,
+    analysis::Analysis,
     rules::{
         CapturesBoundsRule, DestiniesRule, MaterialRule, OriginsRule, RefineOriginsRule,
         RouteFromOriginsRule, RouteToDestiniesRule, Rule, SteadyRule,
@@ -39,7 +39,7 @@ fn init_rules() -> Vec<Box<dyn Rule>> {
 /// ```
 pub fn is_legal(board: &Board) -> bool {
     let mut rules = init_rules();
-    let mut state = State::new(board);
+    let mut state = Analysis::new(board);
     loop {
         state.progress = false;
         for rule in rules.iter_mut() {

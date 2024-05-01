@@ -7,7 +7,7 @@
 
 use chess::{BitBoard, Piece, Square, EMPTY};
 
-use super::{Rule, State};
+use super::{Analysis, Rule};
 use crate::utils::square_color;
 
 // This rule depends solely on the steady pieces, so we keep track of the state
@@ -23,11 +23,11 @@ impl Rule for OriginsRule {
         OriginsRule { steady: EMPTY }
     }
 
-    fn is_applicable(&self, state: &State) -> bool {
+    fn is_applicable(&self, state: &Analysis) -> bool {
         self.steady != state.steady.value || self.steady == EMPTY
     }
 
-    fn apply(&mut self, state: &mut State) {
+    fn apply(&mut self, state: &mut Analysis) {
         let mut progress = false;
 
         for square in *state.board.combined() & state.steady.value & !self.steady {
