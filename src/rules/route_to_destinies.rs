@@ -38,18 +38,11 @@ impl Rule for RouteToDestiniesRule {
                 let nb_allowed_captures = analysis.nb_captures_upper_bound(square);
                 let mut reachable_destinies = EMPTY;
                 for destiny in analysis.destinies(square) {
-                    match distance_to_target(
-                        &analysis.mobility.value,
-                        square,
-                        destiny,
-                        piece,
-                        color,
-                    ) {
-                        None => (),
-                        Some(n) => {
-                            if n <= nb_allowed_captures as u32 {
-                                reachable_destinies |= BitBoard::from_square(destiny);
-                            }
+                    if let Some(n) =
+                        distance_to_target(&analysis.mobility.value, square, destiny, piece, color)
+                    {
+                        if n <= nb_allowed_captures as u32 {
+                            reachable_destinies |= BitBoard::from_square(destiny);
                         }
                     }
                 }
