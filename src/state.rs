@@ -1,15 +1,20 @@
 use std::fmt;
 
-use chess::{BitBoard, Board, Color, Piece, Square, ALL_COLORS, EMPTY, NUM_SQUARES};
+use chess::{
+    BitBoard, Board, Color, Piece, Square, ALL_COLORS, ALL_PIECES, EMPTY, NUM_COLORS, NUM_PIECES,
+    NUM_SQUARES,
+};
+
+use crate::utils::MobilityGraph;
 
 pub(crate) struct Counter<T> {
-    value: T,
+    pub(crate) value: T,
     counter: usize,
 }
 
 impl<T> Counter<T> {
     fn new(value: T) -> Self {
-        Self { value, counter: 0 }
+        Self { value, counter: 1 }
     }
 
     #[inline]
@@ -63,6 +68,12 @@ pub struct State {
     /// game on `s` is such that `l <= n <= u`.
     pub(crate) captures_bounds: Counter<[(i32, i32); NUM_SQUARES]>,
 
+    /// Mobility graphs, for each color and piece type, where nodes are squares
+    /// and arrows indicate the possible moves that a piece of the
+    /// corresponding type and color can have performed during a game leading to
+    /// the position of interest.
+    pub(crate) mobility: Counter<[[MobilityGraph; NUM_PIECES]; NUM_COLORS]>,
+
     /// A flag about the legality of the position. `None` if undetermined,
     /// `Some(true)` if the position has been determined to be illegal, and
     /// `Some(false)` if the position is known to be legal.
@@ -82,6 +93,10 @@ impl State {
             origins: Counter::new([!EMPTY; 64]),
             destinies: Counter::new([!EMPTY; 64]),
             captures_bounds: Counter::new([(0, 15); 64]),
+            mobility: Counter::new([
+                core::array::from_fn(|i| MobilityGraph::init(ALL_PIECES[i], Color::White)),
+                core::array::from_fn(|i| MobilityGraph::init(ALL_PIECES[i], Color::Black)),
+            ]),
             illegal: None,
             progress: false,
         }
