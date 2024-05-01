@@ -1,14 +1,12 @@
 use std::fmt;
 
-use chess::Board;
-
 use crate::state::State;
 
 /// A legality rule, it updates the proof state about the legality of the
 /// position, after deriving new information.
 pub trait Rule: fmt::Debug {
     /// Initializes the rule state for a given board.
-    fn new(board: &Board) -> Self
+    fn new() -> Self
     where
         Self: Sized + fmt::Debug;
 
@@ -35,6 +33,12 @@ pub use refine_origins::*;
 
 mod destinies;
 pub use destinies::*;
+
+mod route_from_origins;
+pub use route_from_origins::*;
+
+mod route_to_destinies;
+pub use route_to_destinies::*;
 
 mod captures_bounds;
 pub use captures_bounds::*;

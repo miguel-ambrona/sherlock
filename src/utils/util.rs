@@ -1,8 +1,8 @@
 //! Util functions.
 
 use chess::{
-    get_bishop_moves, get_king_moves, get_knight_moves, get_pawn_moves, get_rank, get_rook_moves,
-    BitBoard, Board, Color, Piece, Square, EMPTY,
+    get_bishop_rays, get_king_moves, get_knight_moves, get_pawn_attacks, get_pawn_quiets, get_rank,
+    get_rook_rays, BitBoard, Board, Color, Piece, Square, EMPTY,
 };
 
 use super::LIGHT_SQUARES;
@@ -54,16 +54,59 @@ pub fn square_color(square: Square) -> Color {
 }
 
 /// A `BitBoard` with the squares from which a piece of the given `Piece` type
+/// and `Color` can move to from the given `Square` on an empty board.
+#[inline]
+pub fn moves_on_empty_board(piece: Piece, color: Color, square: Square) -> BitBoard {
+    match piece {
+        Piece::King => get_king_moves(square),
+        Piece::Queen => get_rook_rays(square) | get_bishop_rays(square),
+        Piece::Rook => get_rook_rays(square),
+        Piece::Bishop => get_bishop_rays(square),
+        Piece::Knight => get_knight_moves(square),
+        Piece::Pawn => get_pawn_quiets(square, color, EMPTY),
+    }
+}
+
+/// A `BitBoard` with the squares from which a piece of the given `Piece` type
 /// and `Color` can *immediately* reach the given `Square`. By "immediately"
 /// we refer to squares at king-distance 1 (except for knight moves).
 #[inline]
 pub fn predecessors(piece: Piece, color: Color, square: Square) -> BitBoard {
-    match piece {
-        Piece::King => get_king_moves(square),
-        Piece::Queen => get_king_moves(square),
-        Piece::Rook => get_rook_moves(square, EMPTY) & get_king_moves(square),
-        Piece::Bishop => get_bishop_moves(square, EMPTY) & get_king_moves(square),
-        Piece::Knight => get_knight_moves(square),
-        Piece::Pawn => get_pawn_moves(square, !color, EMPTY) & !get_rank(color.to_my_backrank()),
+    // Negate the color to get pawn predecessors right.
+    let mut predecessors = moves_on_empty_board(piece, !color, square);
+    if piece == Piece::Pawn {
+        predecessors |= get_pawn_attacks(square, !color, !EMPTY);
+        predecessors &= !get_rank(color.to_my_backrank());
+    }
+    predecessors & (get_king_moves(square) | get_knight_moves(square))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::utils::*;
+
+    #[test]
+    fn test_predecessors() {
+        [
+            (Piece::King, Color::White, A8, vec![A7, B7, B8]),
+            (Piece::Queen, Color::Black, D8, vec![C8, C7, D7, E7, E8]),
+            (Piece::Rook, Color::White, H1, vec![G1, H2]),
+            (Piece::Bishop, Color::White, E2, vec![D1, D3, F1, F3]),
+            (Piece::Knight, Color::Black, B1, vec![A3, C3, D2]),
+            (Piece::Pawn, Color::White, E7, vec![D6, E6, F6]),
+            (Piece::Pawn, Color::Black, E7, vec![]),
+            (Piece::Pawn, Color::White, H1, vec![]),
+            (Piece::Pawn, Color::Black, H1, vec![H2, G2]),
+            (Piece::Pawn, Color::White, E4, vec![D3, E3, F3]),
+            (Piece::Pawn, Color::Black, E4, vec![D5, E5, F5]),
+        ]
+        .into_iter()
+        .for_each(|(piece, color, square, expected)| {
+            assert_eq!(
+                predecessors(piece, color, square),
+                bitboard_of_squares(&expected)
+            )
+        })
     }
 }

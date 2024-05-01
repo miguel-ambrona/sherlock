@@ -22,7 +22,7 @@ pub struct MaterialRule {
 }
 
 impl Rule for MaterialRule {
-    fn new(_board: &Board) -> Self {
+    fn new() -> Self {
         MaterialRule { applied: false }
     }
 

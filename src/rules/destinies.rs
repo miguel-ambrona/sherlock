@@ -3,7 +3,7 @@
 //! If the piece currently on `s` has only one candidate origin `o`, then the
 //! destiny of `o` must be `s`.
 
-use chess::{BitBoard, Board};
+use chess::BitBoard;
 
 use super::{Rule, State};
 
@@ -13,7 +13,7 @@ pub struct DestiniesRule {
 }
 
 impl Rule for DestiniesRule {
-    fn new(_board: &Board) -> Self {
+    fn new() -> Self {
         DestiniesRule { origins_counter: 0 }
     }
 
@@ -24,7 +24,7 @@ impl Rule for DestiniesRule {
     fn apply(&mut self, state: &mut State) {
         let mut progress = false;
 
-        for square in *state.board.combined() & !state.get_steady() {
+        for square in *state.board.combined() & !state.steady.value {
             if state.origins(square).popcnt() == 1 {
                 let origin = state.origins(square).to_square();
                 progress |= state.update_destinies(origin, BitBoard::from_square(square))
@@ -53,7 +53,7 @@ mod tests {
     fn test_destinies_rule() {
         let board = Board::from_str("1k6/8/8/8/8/8/8/K7 w - -").expect("Valid Position");
         let mut state = State::new(&board);
-        let mut destinies_rule = DestiniesRule::new(&board);
+        let mut destinies_rule = DestiniesRule::new();
 
         destinies_rule.apply(&mut state);
 

@@ -5,7 +5,7 @@
 //! Queens, rooks, bishops and knights may also come from their relative 2nd
 //! rank, as they may be promoted.
 
-use chess::{BitBoard, Board, Piece, Square, EMPTY};
+use chess::{BitBoard, Piece, Square, EMPTY};
 
 use super::{Rule, State};
 use crate::utils::square_color;
@@ -19,32 +19,32 @@ pub struct OriginsRule {
 }
 
 impl Rule for OriginsRule {
-    fn new(_board: &Board) -> Self {
+    fn new() -> Self {
         OriginsRule { steady: EMPTY }
     }
 
     fn is_applicable(&self, state: &State) -> bool {
-        self.steady != state.get_steady() || self.steady == EMPTY
+        self.steady != state.steady.value || self.steady == EMPTY
     }
 
     fn apply(&mut self, state: &mut State) {
         let mut progress = false;
 
-        for square in *state.board.combined() & state.get_steady() & !self.steady {
+        for square in *state.board.combined() & state.steady.value & !self.steady {
             let square_origins = BitBoard::from_square(square);
             progress |= state.update_origins(square, square_origins);
         }
 
-        for square in *state.board.combined() & !state.get_steady() {
+        for square in *state.board.combined() & !state.steady.value {
             let square_origins = state.origins(square)
-                & !state.get_steady()
+                & !state.steady.value
                 & COLOR_ORIGINS[state.piece_color_on(square).to_index()]
                 & origins_of_piece_on(state.piece_type_on(square), square);
             progress |= state.update_origins(square, square_origins);
         }
 
         // update the rule state
-        self.steady = state.get_steady();
+        self.steady = state.steady.value;
 
         // report any progress
         state.origins.increase_counter(progress);

@@ -2,21 +2,23 @@ use chess::Board;
 
 use crate::{
     rules::{
-        CapturesBoundsRule, DestiniesRule, MaterialRule, OriginsRule, RefineOriginsRule, Rule,
-        SteadyRule,
+        CapturesBoundsRule, DestiniesRule, MaterialRule, OriginsRule, RefineOriginsRule,
+        RouteFromOriginsRule, RouteToDestiniesRule, Rule, SteadyRule,
     },
     state::State,
 };
 
-/// Initialize all the available rules on the given board.
-fn init_rules(board: &Board) -> Vec<Box<dyn Rule>> {
+/// Initialize all the available rules.
+fn init_rules() -> Vec<Box<dyn Rule>> {
     vec![
-        Box::new(MaterialRule::new(board)),
-        Box::new(SteadyRule::new(board)),
-        Box::new(OriginsRule::new(board)),
-        Box::new(RefineOriginsRule::new(board)),
-        Box::new(DestiniesRule::new(board)),
-        Box::new(CapturesBoundsRule::new(board)),
+        Box::new(MaterialRule::new()),
+        Box::new(SteadyRule::new()),
+        Box::new(OriginsRule::new()),
+        Box::new(RefineOriginsRule::new()),
+        Box::new(DestiniesRule::new()),
+        Box::new(CapturesBoundsRule::new()),
+        Box::new(RouteFromOriginsRule::new()),
+        Box::new(RouteToDestiniesRule::new()),
     ]
 }
 
@@ -36,7 +38,7 @@ fn init_rules(board: &Board) -> Vec<Box<dyn Rule>> {
 /// assert!(is_legal(&board));
 /// ```
 pub fn is_legal(board: &Board) -> bool {
-    let mut rules = init_rules(board);
+    let mut rules = init_rules();
     let mut state = State::new(board);
     loop {
         state.progress = false;

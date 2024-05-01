@@ -18,7 +18,7 @@ pub struct SteadyRule {
 }
 
 impl Rule for SteadyRule {
-    fn new(_board: &Board) -> Self {
+    fn new() -> Self {
         SteadyRule { steady_counter: 0 }
     }
 
@@ -27,7 +27,7 @@ impl Rule for SteadyRule {
     }
 
     fn apply(&mut self, state: &mut State) {
-        let new_steady = steady_pieces(&state.board, &state.get_steady());
+        let new_steady = steady_pieces(&state.board, &state.steady.value);
         let progress = state.update_steady(new_steady);
 
         // update the rule state
