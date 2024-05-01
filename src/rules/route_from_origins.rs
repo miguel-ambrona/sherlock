@@ -21,11 +21,15 @@ impl Rule for RouteFromOriginsRule {
         }
     }
 
+    fn update(&mut self, analysis: &Analysis) {
+        self.mobility_counter = analysis.mobility.counter();
+    }
+
     fn is_applicable(&self, analysis: &Analysis) -> bool {
         self.mobility_counter != analysis.mobility.counter() || self.mobility_counter == 0
     }
 
-    fn apply(&mut self, analysis: &mut Analysis) {
+    fn apply(&self, analysis: &mut Analysis) {
         let mut progress = false;
 
         for square in analysis.board.combined() & !analysis.steady.value {
@@ -45,9 +49,6 @@ impl Rule for RouteFromOriginsRule {
             }
             progress |= analysis.update_origins(square, plausible_origins);
         }
-
-        // update the rule state
-        self.mobility_counter = analysis.mobility.counter();
 
         // report any progress
         analysis.origins.increase_counter(progress);

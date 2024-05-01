@@ -21,11 +21,15 @@ impl Rule for RouteToDestiniesRule {
         }
     }
 
+    fn update(&mut self, analysis: &Analysis) {
+        self.mobility_counter = analysis.mobility.counter();
+    }
+
     fn is_applicable(&self, analysis: &Analysis) -> bool {
         self.mobility_counter != analysis.mobility.counter() || self.mobility_counter == 0
     }
 
-    fn apply(&mut self, analysis: &mut Analysis) {
+    fn apply(&self, analysis: &mut Analysis) {
         let mut progress = false;
 
         for color in ALL_COLORS {
@@ -52,9 +56,6 @@ impl Rule for RouteToDestiniesRule {
                 progress |= analysis.update_destinies(square, reachable_destinies);
             }
         }
-
-        // update the rule state
-        self.mobility_counter = analysis.mobility.counter();
 
         // report any progress
         analysis.destinies.increase_counter(progress);

@@ -45,6 +45,7 @@ pub fn is_legal(board: &Board) -> bool {
         for rule in rules.iter_mut() {
             if rule.is_applicable(&analysis) && analysis.illegal.is_none() {
                 rule.apply(&mut analysis);
+                rule.update(&analysis);
             }
         }
         if !analysis.progress || analysis.illegal.is_some() {

@@ -26,6 +26,11 @@ impl Rule for CapturesBoundsRule {
         }
     }
 
+    fn update(&mut self, analysis: &Analysis) {
+        self.captures_bounds_counter = analysis.captures_bounds.counter();
+        self.steady_counter = analysis.steady.counter();
+    }
+
     fn is_applicable(&self, analysis: &Analysis) -> bool {
         self.captures_bounds_counter != analysis.captures_bounds.counter()
             || self.steady_counter != analysis.steady.counter()
@@ -33,7 +38,7 @@ impl Rule for CapturesBoundsRule {
             || self.steady_counter == 0
     }
 
-    fn apply(&mut self, analysis: &mut Analysis) {
+    fn apply(&self, analysis: &mut Analysis) {
         let mut progress = false;
         for color in ALL_COLORS {
             // count the number of missing opponents and add all our lower bounds
@@ -64,10 +69,6 @@ impl Rule for CapturesBoundsRule {
             }
         }
 
-        // update the rule state
-        self.captures_bounds_counter = analysis.captures_bounds.counter();
-        self.steady_counter = analysis.steady.counter();
-
         // report any progress
         analysis.captures_bounds.increase_counter(progress);
         analysis.progress |= progress;
@@ -88,7 +89,7 @@ mod tests {
         // White is missing 10 pieces, Black is missing 8
         let board = Board::from_str("rnbqkbnr/8/8/8/8/8/8/1NBQKBN1 w - -").expect("Valid Position");
         let mut analysis = Analysis::new(&board);
-        let mut captures_rule = CapturesBoundsRule::new();
+        let captures_rule = CapturesBoundsRule::new();
 
         let bounds = |analysis: &Analysis, square: Square| -> (i32, i32) {
             (

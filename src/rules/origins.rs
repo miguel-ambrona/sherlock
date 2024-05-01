@@ -23,11 +23,15 @@ impl Rule for OriginsRule {
         OriginsRule { steady: EMPTY }
     }
 
+    fn update(&mut self, analysis: &Analysis) {
+        self.steady = analysis.steady.value;
+    }
+
     fn is_applicable(&self, analysis: &Analysis) -> bool {
         self.steady != analysis.steady.value || self.steady == EMPTY
     }
 
-    fn apply(&mut self, analysis: &mut Analysis) {
+    fn apply(&self, analysis: &mut Analysis) {
         let mut progress = false;
 
         for square in *analysis.board.combined() & analysis.steady.value & !self.steady {
@@ -42,9 +46,6 @@ impl Rule for OriginsRule {
                 & origins_of_piece_on(analysis.piece_type_on(square), square);
             progress |= analysis.update_origins(square, square_origins);
         }
-
-        // update the rule state
-        self.steady = analysis.steady.value;
 
         // report any progress
         analysis.origins.increase_counter(progress);

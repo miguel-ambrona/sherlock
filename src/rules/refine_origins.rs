@@ -19,11 +19,15 @@ impl Rule for RefineOriginsRule {
         RefineOriginsRule { origins_counter: 0 }
     }
 
+    fn update(&mut self, analysis: &Analysis) {
+        self.origins_counter = analysis.origins.counter();
+    }
+
     fn is_applicable(&self, analysis: &Analysis) -> bool {
         self.origins_counter != analysis.origins.counter() || self.origins_counter == 0
     }
 
-    fn apply(&mut self, analysis: &mut Analysis) {
+    fn apply(&self, analysis: &mut Analysis) {
         let mut progress = false;
 
         for color in ALL_COLORS {
@@ -45,9 +49,6 @@ impl Rule for RefineOriginsRule {
                 }
             }
         }
-
-        // update the rule state
-        self.origins_counter = analysis.origins.counter();
 
         // report any progress
         analysis.origins.increase_counter(progress);
