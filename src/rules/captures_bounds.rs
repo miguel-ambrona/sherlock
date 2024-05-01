@@ -11,6 +11,7 @@
 use chess::{Board, ALL_COLORS};
 
 use super::{Analysis, Rule, COLOR_ORIGINS};
+use crate::Legality::Illegal;
 
 #[derive(Debug)]
 pub struct CapturesBoundsRule {
@@ -63,7 +64,7 @@ impl Rule for CapturesBoundsRule {
 
                 // if the bounds ever become incompatible, the position must be illegal
                 if new_upper < lower {
-                    analysis.illegal = Some(true);
+                    analysis.result = Some(Illegal);
                 }
             }
         }
@@ -137,12 +138,12 @@ mod tests {
         assert_eq!(bounds(&analysis, G1), (0, 1));
         assert_eq!(bounds(&analysis, D8), (0, 2));
 
-        assert_eq!(analysis.illegal, None);
+        assert_eq!(analysis.result, None);
 
         // finally, push things beyond the limit and get an illegal position
         analysis.update_captures_lower_bound(F8, 3);
         captures_rule.apply(&mut analysis);
 
-        assert_eq!(analysis.illegal, Some(true));
+        assert_eq!(analysis.result, Some(Illegal));
     }
 }

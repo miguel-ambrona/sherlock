@@ -17,15 +17,24 @@ impl<T> Counter<T> {
         Self { value, counter: 1 }
     }
 
-    #[inline]
     pub(crate) fn counter(&self) -> usize {
         self.counter
     }
 }
 
-/// Type `Analysis` contains all the information that has been derived about the
-/// legality of the position of interest.
+/// The result of a legality analysis.
+#[derive(PartialOrd, PartialEq, Eq, Copy, Clone, Debug)]
+pub enum Legality {
+    /// A position is legal if it is reachable from the starting position via a
+    /// sequence of legal moves.
+    Legal,
+    /// A position is illegal if it is unreachable from the starting position,
+    /// i.e., it can never occur in an actual game.
+    Illegal,
+}
 
+/// This type contains all the information that has been derived about the
+/// legality of the position of interest.
 pub struct Analysis {
     /// The position being analyzed.
     pub(crate) board: Board,
@@ -70,9 +79,15 @@ pub struct Analysis {
     /// A flag about the legality of the position. `None` if undetermined,
     /// `Some(true)` if the position has been determined to be illegal, and
     /// `Some(false)` if the position is known to be legal.
-    pub(crate) illegal: Option<bool>,
+    pub(crate) result: Option<Legality>,
 }
 
+/// In the following examples, we will use the following reference position
+/// designed to illustrate many different concepts.
+///
+/// ![Alt version](https://chasolver.org/FEN.png)
+///
+/// White to move and *no castling rights are enabled*.
 impl Analysis {
     /// Initializes a legality analysis for the given board.
     pub fn new(board: &Board) -> Self {
@@ -86,17 +101,61 @@ impl Analysis {
                 core::array::from_fn(|i| MobilityGraph::init(ALL_PIECES[i], Color::White)),
                 core::array::from_fn(|i| MobilityGraph::init(ALL_PIECES[i], Color::Black)),
             ]),
-            illegal: None,
+            result: None,
         }
     }
 
-    /// Tells whether the piece on the given square was classified as steady.
+    /// Tells whether the piece on the given square was classified as steady
+    /// (it has never moved and is still on their starting square).
+    /// ```
+    /// use std::str::FromStr;
+    ///
+    /// use chess::{Board, Square};
+    /// use sherlock::analyze;
+    ///
+    /// let board = Board::from_str("rnbqk1Nr/ppp1pp1p/4p1p1/8/8/1P6/1PPPPPP1/1RBQKB1R w - -")
+    ///     .expect("Valid Position");
+    /// let analysis = analyze(&board);
+    ///
+    /// // The white queen cannot have possibly moved, unlike the black queen
+    /// assert_eq!(analysis.is_steady(Square::D1), true);
+    /// assert_eq!(analysis.is_steady(Square::D8), false);
+    /// ```
     #[inline]
     pub fn is_steady(&self, square: Square) -> bool {
         BitBoard::from_square(square) & self.steady.value != EMPTY
     }
 
-    /// The candidate origins of the piece on the given square.
+    /// The candidate origins of the piece that is on the given square in the
+    /// analyzed board.
+    /// ```
+    /// use std::str::FromStr;
+    ///
+    /// use chess::{BitBoard, Board, Square, EMPTY};
+    /// use sherlock::analyze;
+    ///
+    /// let board = Board::from_str("rnbqk1Nr/ppp1pp1p/4p1p1/8/8/1P6/1PPPPPP1/1RBQKB1R w - -")
+    ///     .expect("Valid Position");
+    /// let analysis = analyze(&board);
+    ///
+    /// // The piece on G8 (a white knight) may have started the game on B1 or G1,
+    /// // but it can also be the H2-pawn promoted
+    /// assert_eq!(
+    ///     analysis.origins(Square::G8),
+    ///     BitBoard::from_square(Square::B1)
+    ///         | BitBoard::from_square(Square::G1)
+    ///         | BitBoard::from_square(Square::H2)
+    /// );
+    ///
+    /// // The pawn on E6 definitely comes from D7
+    /// assert_eq!(
+    ///     analysis.origins(Square::E6),
+    ///     BitBoard::from_square(Square::D7)
+    /// );
+    ///
+    /// // This should not be queried on an empty square, but if you insist...
+    /// assert_eq!(analysis.origins(Square::E5), !EMPTY);
+    /// ```
     #[inline]
     pub fn origins(&self, square: Square) -> BitBoard {
         self.origins.value[square.to_index()]
@@ -162,7 +221,7 @@ impl Analysis {
 
         // if the set of candidate origins of a piece is empty, the position is illegal
         if value == EMPTY {
-            self.illegal = Some(true);
+            self.result = Some(Legality::Illegal);
         }
         true
     }
@@ -181,7 +240,7 @@ impl Analysis {
         // if the set of candidate destinies of a piece is empty, the position is
         // illegal
         if value == EMPTY {
-            self.illegal = Some(true);
+            self.result = Some(Legality::Illegal);
         }
         true
     }
@@ -260,6 +319,6 @@ impl fmt::Display for Analysis {
         for line in lines.iter().rev() {
             writeln!(f, "{}", line)?;
         }
-        writeln!(f, "\nillegal: {:?}", self.illegal)
+        writeln!(f, "\nresult: {:?}", self.result)
     }
 }
