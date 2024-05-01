@@ -5,7 +5,7 @@
 //! Queens, rooks, bishops and knights may also come from their relative 2nd
 //! rank, as they may be promoted.
 
-use chess::{BitBoard, Board, Piece, Square, EMPTY};
+use chess::{BitBoard, Piece, Square, EMPTY};
 
 use super::{Rule, State};
 use crate::utils::square_color;
@@ -19,7 +19,7 @@ pub struct OriginsRule {
 }
 
 impl Rule for OriginsRule {
-    fn new(_board: &Board) -> Self {
+    fn new() -> Self {
         OriginsRule { steady: EMPTY }
     }
 

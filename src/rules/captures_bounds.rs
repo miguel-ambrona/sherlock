@@ -19,7 +19,7 @@ pub struct CapturesBoundsRule {
 }
 
 impl Rule for CapturesBoundsRule {
-    fn new(_board: &Board) -> Self {
+    fn new() -> Self {
         CapturesBoundsRule {
             captures_bounds_counter: 0,
             steady_counter: 0,
@@ -88,7 +88,7 @@ mod tests {
         // White is missing 10 pieces, Black is missing 8
         let board = Board::from_str("rnbqkbnr/8/8/8/8/8/8/1NBQKBN1 w - -").expect("Valid Position");
         let mut state = State::new(&board);
-        let mut captures_rule = CapturesBoundsRule::new(&board);
+        let mut captures_rule = CapturesBoundsRule::new();
 
         let bounds = |state: &State, square: Square| -> (i32, i32) {
             (

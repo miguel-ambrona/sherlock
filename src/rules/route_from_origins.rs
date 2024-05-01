@@ -4,7 +4,7 @@
 //! from its candidate origins to its current square. The candidate origins that
 //! do not satisfy this condition are filtered out.
 
-use chess::{BitBoard, Board, EMPTY};
+use chess::{BitBoard, EMPTY};
 
 use super::Rule;
 use crate::{state::State, utils::distance_from_source};
@@ -15,7 +15,7 @@ pub struct RouteFromOriginsRule {
 }
 
 impl Rule for RouteFromOriginsRule {
-    fn new(_board: &Board) -> Self {
+    fn new() -> Self {
         Self {
             mobility_counter: 0,
         }

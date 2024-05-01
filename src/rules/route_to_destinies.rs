@@ -15,7 +15,7 @@ pub struct RouteToDestiniesRule {
 }
 
 impl Rule for RouteToDestiniesRule {
-    fn new(_board: &Board) -> Self {
+    fn new() -> Self {
         Self {
             mobility_counter: 0,
         }

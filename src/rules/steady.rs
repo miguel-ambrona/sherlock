@@ -18,7 +18,7 @@ pub struct SteadyRule {
 }
 
 impl Rule for SteadyRule {
-    fn new(_board: &Board) -> Self {
+    fn new() -> Self {
         SteadyRule { steady_counter: 0 }
     }
 

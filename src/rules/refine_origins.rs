@@ -4,7 +4,7 @@
 //! combined candidate origins, those origins cannot be origins of any other
 //! piece.
 
-use chess::{Board, ALL_COLORS};
+use chess::ALL_COLORS;
 
 use super::{Rule, State};
 use crate::utils::find_k_group;
@@ -15,7 +15,7 @@ pub struct RefineOriginsRule {
 }
 
 impl Rule for RefineOriginsRule {
-    fn new(_board: &Board) -> Self {
+    fn new() -> Self {
         RefineOriginsRule { origins_counter: 0 }
     }
 
