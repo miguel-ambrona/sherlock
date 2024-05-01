@@ -18,10 +18,10 @@
 
 #![deny(missing_docs)]
 
+mod analysis;
 mod rules;
-mod state;
 mod utils;
 
 mod legality;
 
-pub use crate::{legality::*, state::*};
+pub use crate::{analysis::*, legality::*};

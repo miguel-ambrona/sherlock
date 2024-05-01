@@ -5,7 +5,7 @@
 
 use chess::BitBoard;
 
-use super::{Rule, State};
+use super::{Analysis, Rule};
 
 #[derive(Debug)]
 pub struct DestiniesRule {
@@ -17,26 +17,26 @@ impl Rule for DestiniesRule {
         DestiniesRule { origins_counter: 0 }
     }
 
-    fn is_applicable(&self, state: &State) -> bool {
-        self.origins_counter != state.origins.counter() || self.origins_counter == 0
+    fn is_applicable(&self, analysis: &Analysis) -> bool {
+        self.origins_counter != analysis.origins.counter() || self.origins_counter == 0
     }
 
-    fn apply(&mut self, state: &mut State) {
+    fn apply(&mut self, analysis: &mut Analysis) {
         let mut progress = false;
 
-        for square in *state.board.combined() & !state.steady.value {
-            if state.origins(square).popcnt() == 1 {
-                let origin = state.origins(square).to_square();
-                progress |= state.update_destinies(origin, BitBoard::from_square(square))
+        for square in *analysis.board.combined() & !analysis.steady.value {
+            if analysis.origins(square).popcnt() == 1 {
+                let origin = analysis.origins(square).to_square();
+                progress |= analysis.update_destinies(origin, BitBoard::from_square(square))
             }
         }
 
         // update the rule state
-        self.origins_counter = state.origins.counter();
+        self.origins_counter = analysis.origins.counter();
 
         // report any progress
-        state.destinies.increase_counter(progress);
-        state.progress |= progress;
+        analysis.destinies.increase_counter(progress);
+        analysis.progress |= progress;
     }
 }
 
@@ -47,28 +47,28 @@ mod tests {
     use chess::{Board, EMPTY};
 
     use super::*;
-    use crate::{rules::Rule, state::State, utils::*};
+    use crate::{rules::Rule, utils::*};
 
     #[test]
     fn test_destinies_rule() {
         let board = Board::from_str("1k6/8/8/8/8/8/8/K7 w - -").expect("Valid Position");
-        let mut state = State::new(&board);
+        let mut analysis = Analysis::new(&board);
         let mut destinies_rule = DestiniesRule::new();
 
-        destinies_rule.apply(&mut state);
+        destinies_rule.apply(&mut analysis);
 
         // we should not have any information on destinies yet
-        assert_eq!(state.destinies(E1), !EMPTY);
-        assert_eq!(state.destinies(E7), !EMPTY);
+        assert_eq!(analysis.destinies(E1), !EMPTY);
+        assert_eq!(analysis.destinies(E7), !EMPTY);
 
         // learn that E1 is the only candidate origin of the piece on A1
-        state.update_origins(A1, bitboard_of_squares(&[E1]));
-        destinies_rule.apply(&mut state);
+        analysis.update_origins(A1, bitboard_of_squares(&[E1]));
+        destinies_rule.apply(&mut analysis);
 
         // the destinies of E1 must have been updated to A1
-        assert_eq!(state.destinies(E1), bitboard_of_squares(&[A1]));
+        assert_eq!(analysis.destinies(E1), bitboard_of_squares(&[A1]));
 
         // others are still uncertain
-        assert_eq!(state.destinies(E7), !EMPTY);
+        assert_eq!(analysis.destinies(E7), !EMPTY);
     }
 }

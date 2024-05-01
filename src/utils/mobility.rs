@@ -1,7 +1,8 @@
 //! Graph functions.
 
 use chess::{
-    get_pawn_attacks, get_rank, BitBoard, Color, Piece, Square, ALL_SQUARES, EMPTY, NUM_SQUARES,
+    get_pawn_attacks, get_rank, BitBoard, Color, Piece, Square, ALL_SQUARES, EMPTY, NUM_COLORS,
+    NUM_PIECES, NUM_SQUARES,
 };
 use petgraph::{
     algo::dijkstra,
@@ -11,7 +12,6 @@ use petgraph::{
 };
 
 use super::moves_on_empty_board;
-use crate::State;
 
 pub struct MobilityGraph {
     graph: DiGraph<(), u32>,
@@ -122,19 +122,19 @@ impl MobilityGraph {
 /// Note that we also consider the possibility of the piece starting its
 /// journey as a pawn, and having promoted.
 pub fn distance_from_source(
-    state: &State,
+    mobility_graphs: &[[MobilityGraph; NUM_PIECES]; NUM_COLORS],
     source: Square,
     target: Square,
     piece: Piece,
     color: Color,
 ) -> Option<u32> {
-    let piece_graph = &state.mobility.value[color.to_index()][piece.to_index()];
+    let piece_graph = &mobility_graphs[color.to_index()][piece.to_index()];
     // the distance without promotions
     let mut distance = piece_graph.distance(source, target);
 
     // consider the possibility of a promotion
     if piece != Piece::Pawn && piece != Piece::King {
-        let pawn_graph = &state.mobility.value[color.to_index()][Piece::Pawn.to_index()];
+        let pawn_graph = &mobility_graphs[color.to_index()][Piece::Pawn.to_index()];
         for promoting_square in get_rank(color.to_their_backrank()) {
             let d1 = pawn_graph.distance(source, promoting_square);
             let d2 = piece_graph.distance(promoting_square, target);
@@ -160,13 +160,13 @@ pub fn distance_from_source(
 /// If the piece is a pawn, it is allowed to promote in order to reach
 /// the target.
 pub fn distance_to_target(
-    state: &State,
+    mobility_graphs: &[[MobilityGraph; NUM_PIECES]; NUM_COLORS],
     source: Square,
     target: Square,
     piece: Piece,
     color: Color,
 ) -> Option<u32> {
-    let piece_graph = &state.mobility.value[color.to_index()][piece.to_index()];
+    let piece_graph = &mobility_graphs[color.to_index()][piece.to_index()];
     // the distance without promotions
     let mut distance = piece_graph.distance(source, target);
 
@@ -186,7 +186,7 @@ pub fn distance_to_target(
 #[cfg(test)]
 mod tests {
 
-    use chess::Board;
+    use chess::ALL_PIECES;
     use Color::*;
     use Piece::*;
 
@@ -225,69 +225,90 @@ mod tests {
 
     #[test]
     fn test_distance_from_source() {
-        let mut state = State::new(&Board::default());
+        let mut graphs = [
+            core::array::from_fn(|i| MobilityGraph::init(ALL_PIECES[i], Color::White)),
+            core::array::from_fn(|i| MobilityGraph::init(ALL_PIECES[i], Color::Black)),
+        ];
 
         // a bishop on H5 cannot have come from C1, a dark square
-        assert_eq!(distance_from_source(&state, C1, H5, Bishop, White), None);
+        assert_eq!(distance_from_source(&graphs, C1, H5, Bishop, White), None);
 
         // but it may have come from B1, a light square, no captures needed
-        assert_eq!(distance_from_source(&state, B1, H5, Bishop, White), Some(0));
+        assert_eq!(
+            distance_from_source(&graphs, B1, H5, Bishop, White),
+            Some(0)
+        );
 
         // it can also have come from B2, although it is a dark square, because
         // it could have been a promoted pawn, at least a capture is needed, though
         // to switch to a file with a light promoting square
-        assert_eq!(distance_from_source(&state, B2, H5, Bishop, White), Some(1));
+        assert_eq!(
+            distance_from_source(&graphs, B2, H5, Bishop, White),
+            Some(1)
+        );
 
         // from E3, no captures are needed
-        assert_eq!(distance_from_source(&state, E3, H5, Bishop, White), Some(0));
+        assert_eq!(
+            distance_from_source(&graphs, E3, H5, Bishop, White),
+            Some(0)
+        );
 
         // or from B2 if the bishop were Black (as B1 is light)
-        assert_eq!(distance_from_source(&state, B2, H5, Bishop, Black), Some(0));
+        assert_eq!(
+            distance_from_source(&graphs, B2, H5, Bishop, Black),
+            Some(0)
+        );
 
         // let us remove some graph connections
-        state.mobility.value[White.to_index()][Bishop.to_index()].remove_outgoing_edges(E8);
+        graphs[White.to_index()][Bishop.to_index()].remove_outgoing_edges(E8);
 
         // now we cannot promote on E8 because we disconnected E8 from H5
-        assert_eq!(distance_from_source(&state, E3, H5, Bishop, White), Some(2));
+        assert_eq!(
+            distance_from_source(&graphs, E3, H5, Bishop, White),
+            Some(2)
+        );
 
         // a black pawn on C3 can come from F7, but it takes 3 captures
-        assert_eq!(distance_from_source(&state, F7, C3, Pawn, Black), Some(3));
+        assert_eq!(distance_from_source(&graphs, F7, C3, Pawn, Black), Some(3));
 
         // of course, it cannot come from G8
-        assert_eq!(distance_from_source(&state, G8, C3, Pawn, Black), None);
+        assert_eq!(distance_from_source(&graphs, G8, C3, Pawn, Black), None);
 
         // and it cannot come from H7, because it would not be a pawn after a promotion
-        assert_eq!(distance_from_source(&state, H7, C3, Pawn, Black), None);
+        assert_eq!(distance_from_source(&graphs, H7, C3, Pawn, Black), None);
 
         // if we remove the connection E6 -> D5, it can still come from F7
-        state.mobility.value[Black.to_index()][Pawn.to_index()].remove_edge(E6, D5);
-        assert_eq!(distance_from_source(&state, F7, C3, Pawn, Black), Some(3));
+        graphs[Black.to_index()][Pawn.to_index()].remove_edge(E6, D5);
+        assert_eq!(distance_from_source(&graphs, F7, C3, Pawn, Black), Some(3));
 
         // but also removing E5 -> D4 will disconnect it from F7
-        state.mobility.value[Black.to_index()][Pawn.to_index()].remove_edge(E5, D4);
-        assert_eq!(distance_from_source(&state, F7, C3, Pawn, Black), None);
+        graphs[Black.to_index()][Pawn.to_index()].remove_edge(E5, D4);
+        assert_eq!(distance_from_source(&graphs, F7, C3, Pawn, Black), None);
     }
 
     #[test]
     fn test_distance_to_target() {
-        let mut state = State::new(&Board::default());
+        let mut graphs = [
+            core::array::from_fn(|i| MobilityGraph::init(ALL_PIECES[i], Color::White)),
+            core::array::from_fn(|i| MobilityGraph::init(ALL_PIECES[i], Color::Black)),
+        ];
 
         // a queen should be able to go anywhere without captures
-        assert_eq!(distance_to_target(&state, A1, H8, Queen, Black), Some(0));
+        assert_eq!(distance_to_target(&graphs, A1, H8, Queen, Black), Some(0));
 
         // a pawn too if it can promote on their original file
-        assert_eq!(distance_to_target(&state, A2, C4, Pawn, White), Some(0));
+        assert_eq!(distance_to_target(&graphs, A2, C4, Pawn, White), Some(0));
 
         // even if we disallow A2 -> A3, it can still go A2 -> A4 in one go
-        state.mobility.value[White.to_index()][Pawn.to_index()].remove_edge(A2, A3);
-        assert_eq!(distance_to_target(&state, A2, C4, Pawn, White), Some(0));
+        graphs[White.to_index()][Pawn.to_index()].remove_edge(A2, A3);
+        assert_eq!(distance_to_target(&graphs, A2, C4, Pawn, White), Some(0));
 
         // but also removing A2 -> A4 will force the pawn to capture at least once
-        state.mobility.value[White.to_index()][Pawn.to_index()].remove_edge(A2, A4);
-        assert_eq!(distance_to_target(&state, A2, C4, Pawn, White), Some(1));
+        graphs[White.to_index()][Pawn.to_index()].remove_edge(A2, A4);
+        assert_eq!(distance_to_target(&graphs, A2, C4, Pawn, White), Some(1));
 
         // finally, if we disallow promotions on B8, it will take at least 2 captures
-        state.mobility.value[White.to_index()][Pawn.to_index()].remove_incoming_edges(B8);
-        assert_eq!(distance_to_target(&state, A2, C4, Pawn, White), Some(2));
+        graphs[White.to_index()][Pawn.to_index()].remove_incoming_edges(B8);
+        assert_eq!(distance_to_target(&graphs, A2, C4, Pawn, White), Some(2));
     }
 }

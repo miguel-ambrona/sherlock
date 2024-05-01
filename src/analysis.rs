@@ -30,10 +30,10 @@ impl<T> Counter<T> {
     }
 }
 
-/// Type `State` contains all the information that has been derived about the
+/// Type `Analysis` contains all the information that has been derived about the
 /// legality of the position of interest.
 
-pub struct State {
+pub struct Analysis {
     /// The position being analyzed.
     pub(crate) board: Board,
 
@@ -80,14 +80,14 @@ pub struct State {
     pub(crate) illegal: Option<bool>,
 
     /// A flag indicating whether there has been recent progress in updating the
-    /// state (used to know when to stop applying rules).
+    /// analysis (used to know when to stop applying rules).
     pub(crate) progress: bool,
 }
 
-impl State {
-    /// Initializes a proof state for the given board.
+impl Analysis {
+    /// Initializes a legality analysis for the given board.
     pub fn new(board: &Board) -> Self {
-        State {
+        Analysis {
             board: *board,
             steady: Counter::new(EMPTY),
             origins: Counter::new([!EMPTY; 64]),
@@ -134,14 +134,14 @@ impl State {
         self.captures_bounds.value[square.to_index()].1
     }
 
-    /// The piece type of the piece on the given square in the state's board.
+    /// The piece type of the piece on the given square in the analysis's board.
     /// Panics if the square is empty.
     pub(crate) fn piece_type_on(&self, square: Square) -> Piece {
         self.board.piece_on(square).unwrap()
     }
 
-    /// The piece color of the piece on the given square in the state's board.
-    /// Panics if the square is empty.
+    /// The piece color of the piece on the given square in the analysis's
+    /// board. Panics if the square is empty.
     pub(crate) fn piece_color_on(&self, square: Square) -> Color {
         for color in ALL_COLORS {
             if BitBoard::from_square(square) & self.board.color_combined(color) != EMPTY {
@@ -152,7 +152,7 @@ impl State {
     }
 }
 
-impl State {
+impl Analysis {
     /// Update the information on steady pieces with the given value.
     pub(crate) fn update_steady(&mut self, value: BitBoard) -> bool {
         if (self.steady.value | value) == self.steady.value {
@@ -209,7 +209,7 @@ impl State {
     }
 }
 
-impl fmt::Display for State {
+impl fmt::Display for Analysis {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "FEN: {}\n", self.board,)?;
         writeln!(f, "steady:\n{}", self.steady.value.reverse_colors())?;

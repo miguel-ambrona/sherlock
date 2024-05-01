@@ -6,7 +6,7 @@ use chess::{Board, ALL_COLORS};
 
 use super::Rule;
 use crate::{
-    state::State,
+    analysis::Analysis,
     utils::{bishops, knights, pawns, queens, rooks, DARK_SQUARES, LIGHT_SQUARES},
 };
 
@@ -26,14 +26,14 @@ impl Rule for MaterialRule {
         MaterialRule { applied: false }
     }
 
-    fn is_applicable(&self, _state: &State) -> bool {
+    fn is_applicable(&self, _analysis: &Analysis) -> bool {
         !self.applied
     }
 
-    fn apply(&mut self, state: &mut State) {
+    fn apply(&mut self, analysis: &mut Analysis) {
         self.applied = true;
-        if illegal_material(&state.board) {
-            state.illegal = Some(true)
+        if illegal_material(&analysis.board) {
+            analysis.illegal = Some(true)
         }
     }
 }
