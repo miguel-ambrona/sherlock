@@ -4,7 +4,7 @@ use crate::{
     analysis::Analysis,
     rules::{
         CapturesBoundsRule, DestiniesRule, MaterialRule, OriginsRule, RefineOriginsRule,
-        RouteFromOriginsRule, RouteToDestiniesRule, Rule, SteadyRule,
+        RouteFromOriginsRule, RouteToReachable, Rule, SteadyRule,
     },
     Legality::Illegal,
 };
@@ -19,7 +19,7 @@ fn init_rules() -> Vec<Box<dyn Rule>> {
         Box::new(DestiniesRule::new()),
         Box::new(CapturesBoundsRule::new()),
         Box::new(RouteFromOriginsRule::new()),
-        Box::new(RouteToDestiniesRule::new()),
+        Box::new(RouteToReachable::new()),
     ]
 }
 

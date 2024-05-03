@@ -230,6 +230,7 @@ impl Analysis {
 
     /// Update the candidate origins of the piece on the given square, with the
     /// given value.
+    /// Returns a boolean value indicating whether the update changed anything.
     pub(crate) fn update_origins(&mut self, square: Square, value: BitBoard) -> bool {
         if self.origins.value[square.to_index()] == value {
             return false;
@@ -246,8 +247,7 @@ impl Analysis {
 
     /// Update the candidate destinies of the piece that started on the given
     /// square, with the given value.
-    /// Returns a boolean value indicating whether the update actually changed
-    /// the known information on destinies.
+    /// Returns a boolean value indicating whether the update changed anything.
     pub(crate) fn update_destinies(&mut self, square: Square, value: BitBoard) -> bool {
         if self.destinies.value[square.to_index()] == value {
             return false;
@@ -260,6 +260,18 @@ impl Analysis {
         if value == EMPTY {
             self.result = Some(Legality::Illegal);
         }
+        true
+    }
+
+    /// Update the reachable squares of the piece that started on the given
+    /// square, with the given value.
+    /// Returns a boolean value indicating whether the update changed anything.
+    pub(crate) fn update_reachable(&mut self, square: Square, value: BitBoard) -> bool {
+        if self.reachable.value[square.to_index()] == value {
+            return false;
+        }
+        self.reachable.value[square.to_index()] = value;
+        self.reachable.counter += 1;
         true
     }
 
