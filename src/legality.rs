@@ -6,6 +6,7 @@ use crate::{
         CapturesBoundsRule, DestiniesRule, MaterialRule, OriginsRule, RefineOriginsRule,
         RouteFromOriginsRule, RouteToDestiniesRule, Rule, SteadyRule,
     },
+    Legality::Illegal,
 };
 
 /// Initialize all the available rules.
@@ -20,6 +21,35 @@ fn init_rules() -> Vec<Box<dyn Rule>> {
         Box::new(RouteFromOriginsRule::new()),
         Box::new(RouteToDestiniesRule::new()),
     ]
+}
+
+/// Analyzes the legality of the position using all the existing rules.
+/// Returns a report containing all the information derived about the
+/// position.
+/// ```
+/// use chess::{Board, Square};
+/// use sherlock::analyze;
+///
+/// let analysis = analyze(&Board::default());
+/// assert_eq!(analysis.is_steady(Square::D1), true);
+/// assert_eq!(analysis.is_steady(Square::B1), false);
+/// ```
+pub fn analyze(board: &Board) -> Analysis {
+    let mut rules = init_rules();
+    let mut analysis = Analysis::new(board);
+    loop {
+        let mut progress = false;
+        for rule in rules.iter_mut() {
+            if rule.is_applicable(&analysis) && analysis.result.is_none() {
+                rule.update(&analysis);
+                progress |= rule.apply(&mut analysis);
+            }
+        }
+        if !progress || analysis.result.is_some() {
+            break;
+        }
+    }
+    analysis
 }
 
 /// Checks whether the given `Board` is *legal*, i.e. reachable from the
@@ -38,19 +68,6 @@ fn init_rules() -> Vec<Box<dyn Rule>> {
 /// assert!(is_legal(&board));
 /// ```
 pub fn is_legal(board: &Board) -> bool {
-    let mut rules = init_rules();
-    let mut analysis = Analysis::new(board);
-    loop {
-        let mut progress = false;
-        for rule in rules.iter_mut() {
-            if rule.is_applicable(&analysis) && analysis.illegal.is_none() {
-                rule.update(&analysis);
-                progress |= rule.apply(&mut analysis);
-            }
-        }
-        if !progress || analysis.illegal.is_some() {
-            break;
-        }
-    }
-    analysis.illegal != Some(true)
+    let analysis = analyze(board);
+    analysis.result != Some(Illegal)
 }

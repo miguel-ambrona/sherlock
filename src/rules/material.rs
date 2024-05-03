@@ -8,6 +8,7 @@ use super::Rule;
 use crate::{
     analysis::Analysis,
     utils::{bishops, knights, pawns, queens, rooks, DARK_SQUARES, LIGHT_SQUARES},
+    Legality::Illegal,
 };
 
 /// A rule that performs a simple check on the position material,
@@ -36,7 +37,7 @@ impl Rule for MaterialRule {
 
     fn apply(&self, analysis: &mut Analysis) -> bool {
         if illegal_material(&analysis.board) {
-            analysis.illegal = Some(true);
+            analysis.result = Some(Illegal);
             true
         } else {
             false
