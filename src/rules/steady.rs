@@ -27,7 +27,7 @@ impl Rule for SteadyRule {
     }
 
     fn is_applicable(&self, analysis: &Analysis) -> bool {
-        self.steady_counter != analysis.steady.counter() || self.steady_counter == 0
+        self.steady_counter != analysis.steady.counter()
     }
 
     fn apply(&self, analysis: &mut Analysis) -> bool {

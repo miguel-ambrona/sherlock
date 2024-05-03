@@ -35,8 +35,6 @@ impl Rule for CapturesBoundsRule {
     fn is_applicable(&self, analysis: &Analysis) -> bool {
         self.captures_bounds_counter != analysis.captures_bounds.counter()
             || self.steady_counter != analysis.steady.counter()
-            || self.captures_bounds_counter == 0
-            || self.steady_counter == 0
     }
 
     fn apply(&self, analysis: &mut Analysis) -> bool {

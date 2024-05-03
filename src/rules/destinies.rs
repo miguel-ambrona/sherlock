@@ -29,8 +29,6 @@ impl Rule for DestiniesRule {
     fn is_applicable(&self, analysis: &Analysis) -> bool {
         self.origins_counter != analysis.origins.counter()
             || self.reachable_counter != analysis.reachable.counter()
-            || self.origins_counter == 0
-            || self.reachable_counter == 0
     }
 
     fn apply(&self, analysis: &mut Analysis) -> bool {
