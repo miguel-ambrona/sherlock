@@ -62,6 +62,16 @@ pub struct Analysis {
     /// the piece which started on `s` has definitely not ended the game on `t`.
     pub(crate) destinies: Counter<[BitBoard; NUM_SQUARES]>,
 
+    /// The candidate squares that may have been reached by a certain piece.
+    ///
+    /// For `s : Square`, `reachable[s.to_index()]` is a `BitBoard` encoding
+    /// the squares where the piece that started on `s` may have reached
+    /// during the game.
+    ///
+    /// If `BitBoard::from_square(t) & reachable[s.to_index()] == EMPTY`, then
+    /// the piece which started on `s` has definitely not reached square `t`.
+    pub(crate) reachable: Counter<[BitBoard; NUM_SQUARES]>,
+
     /// A lower-upper bound pair on the number of captures performed by every
     /// piece.
     ///
@@ -96,6 +106,7 @@ impl Analysis {
             steady: Counter::new(EMPTY),
             origins: Counter::new([!EMPTY; 64]),
             destinies: Counter::new([!EMPTY; 64]),
+            reachable: Counter::new([!EMPTY; 64]),
             captures_bounds: Counter::new([(0, 15); 64]),
             mobility: Counter::new([
                 core::array::from_fn(|i| MobilityGraph::init(ALL_PIECES[i], Color::White)),
@@ -165,6 +176,13 @@ impl Analysis {
     #[inline]
     pub fn destinies(&self, square: Square) -> BitBoard {
         self.destinies.value[square.to_index()]
+    }
+
+    /// The squares that may have been reached by the piece that started on the
+    /// given square.
+    #[inline]
+    pub fn reachable(&self, square: Square) -> BitBoard {
+        self.reachable.value[square.to_index()]
     }
 
     /// The known lower bound on the number of captures performed by the piece
@@ -290,6 +308,18 @@ impl fmt::Display for Analysis {
             } else {
                 write!(f, "  {} -> [", square)?;
                 for destiny in self.destinies(square) {
+                    write!(f, "{},", destiny)?;
+                }
+                writeln!(f, "]")?;
+            }
+        }
+        writeln!(f, "\nreachable (cnt: {}):\n", self.reachable.counter)?;
+        for square in *Board::default().combined() {
+            if self.reachable(square) == !EMPTY {
+                writeln!(f, "  {}, -> ANY", square)?;
+            } else {
+                write!(f, "  {} -> [", square)?;
+                for destiny in self.reachable(square) {
                     write!(f, "{},", destiny)?;
                 }
                 writeln!(f, "]")?;
