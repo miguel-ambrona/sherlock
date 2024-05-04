@@ -280,7 +280,7 @@ impl Analysis {
     /// value.
     #[cfg(test)]
     pub(crate) fn update_captures_lower_bound(&mut self, square: Square, bound: i32) -> bool {
-        if self.captures_bounds.value[square.to_index()].0 == bound {
+        if self.captures_bounds.value[square.to_index()].0 >= bound {
             return false;
         }
         self.captures_bounds.value[square.to_index()].0 = bound;
@@ -292,7 +292,7 @@ impl Analysis {
     /// piece that started the game on the given square, with the given
     /// value.
     pub(crate) fn update_captures_upper_bound(&mut self, square: Square, bound: i32) -> bool {
-        if self.captures_bounds.value[square.to_index()].1 == bound {
+        if self.captures_bounds.value[square.to_index()].1 <= bound {
             return false;
         }
         self.captures_bounds.value[square.to_index()].1 = bound;
