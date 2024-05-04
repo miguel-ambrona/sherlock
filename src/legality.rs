@@ -1,13 +1,6 @@
 use chess::Board;
 
-use crate::{
-    analysis::Analysis,
-    rules::{
-        CapturesBoundsRule, DestiniesRule, MaterialRule, OriginsRule, RefineOriginsRule,
-        RouteFromOriginsRule, RouteToDestiniesRule, Rule, SteadyRule,
-    },
-    Legality::Illegal,
-};
+use crate::{analysis::Analysis, rules::*, Legality::Illegal};
 
 /// Initialize all the available rules.
 fn init_rules() -> Vec<Box<dyn Rule>> {
@@ -17,9 +10,10 @@ fn init_rules() -> Vec<Box<dyn Rule>> {
         Box::new(OriginsRule::new()),
         Box::new(RefineOriginsRule::new()),
         Box::new(DestiniesRule::new()),
+        Box::new(SteadyMobilityRule::new()),
         Box::new(CapturesBoundsRule::new()),
         Box::new(RouteFromOriginsRule::new()),
-        Box::new(RouteToDestiniesRule::new()),
+        Box::new(RouteToReachable::new()),
     ]
 }
 

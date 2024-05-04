@@ -61,8 +61,7 @@ impl MobilityGraph {
 
     /// Makes sure the edge between the given squares disappears from the graph.
     /// Returns `true` iff this operation modifies the graph.
-    #[allow(dead_code)]
-    fn remove_edge(&mut self, source: Square, target: Square) -> bool {
+    pub fn remove_edge(&mut self, source: Square, target: Square) -> bool {
         match self.edge(source, target) {
             None => false,
             Some(edge) => {
@@ -81,8 +80,7 @@ impl MobilityGraph {
 
     /// Makes sure the graph does not have outgoing edges from the given node.
     /// Returns `true` iff this operation modifies the graph.
-    #[allow(dead_code)]
-    fn remove_outgoing_edges(&mut self, source: Square) -> bool {
+    pub fn remove_outgoing_edges(&mut self, source: Square) -> bool {
         let outgoing_edges: Vec<_> = self
             .graph
             .edges_directed(self.node(source), Outgoing)
@@ -94,8 +92,7 @@ impl MobilityGraph {
 
     /// Makes sure the graph does not have incoming edges to the given node.
     /// Returns `true` iff this operation modifies the graph.
-    #[allow(dead_code)]
-    fn remove_incoming_edges(&mut self, target: Square) -> bool {
+    pub fn remove_incoming_edges(&mut self, target: Square) -> bool {
         let incoming_edges: Vec<_> = self
             .graph
             .edges_directed(self.node(target), Incoming)
@@ -105,8 +102,16 @@ impl MobilityGraph {
         !incoming_edges.is_empty()
     }
 
+    /// Makes sure the given node is disconnected from the rest of the graph.
+    /// Returns `true` iff this operation modifies the graph.
+    #[allow(dead_code)]
+    pub fn remove_node_edges(&mut self, node: Square) -> bool {
+        self.remove_outgoing_edges(node) || self.remove_incoming_edges(node)
+    }
+
     pub fn distance(&self, source: Square, target: Square) -> Option<u32> {
         let node_map = dijkstra(&self.graph, self.node(source), None, |e| *e.weight());
+        println!("{} -> {}\n{:?}", source, target, node_map);
         node_map.get(&self.node(target)).copied()
     }
 }

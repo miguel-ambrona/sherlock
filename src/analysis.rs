@@ -1,8 +1,8 @@
 use std::fmt;
 
 use chess::{
-    BitBoard, Board, Color, Piece, Square, ALL_COLORS, ALL_PIECES, EMPTY, NUM_COLORS, NUM_PIECES,
-    NUM_SQUARES,
+    get_bishop_rays, get_rook_rays, BitBoard, Board, Color, Piece, Square, ALL_COLORS, ALL_PIECES,
+    EMPTY, NUM_COLORS, NUM_PIECES, NUM_SQUARES,
 };
 
 use crate::utils::MobilityGraph;
@@ -62,6 +62,16 @@ pub struct Analysis {
     /// the piece which started on `s` has definitely not ended the game on `t`.
     pub(crate) destinies: Counter<[BitBoard; NUM_SQUARES]>,
 
+    /// The candidate squares that may have been reached by a certain piece.
+    ///
+    /// For `s : Square`, `reachable[s.to_index()]` is a `BitBoard` encoding
+    /// the squares where the piece that started on `s` may have reached
+    /// during the game.
+    ///
+    /// If `BitBoard::from_square(t) & reachable[s.to_index()] == EMPTY`, then
+    /// the piece which started on `s` has definitely not reached square `t`.
+    pub(crate) reachable: Counter<[BitBoard; NUM_SQUARES]>,
+
     /// A lower-upper bound pair on the number of captures performed by every
     /// piece.
     ///
@@ -96,6 +106,7 @@ impl Analysis {
             steady: Counter::new(EMPTY),
             origins: Counter::new([!EMPTY; 64]),
             destinies: Counter::new([!EMPTY; 64]),
+            reachable: Counter::new([!EMPTY; 64]),
             captures_bounds: Counter::new([(0, 15); 64]),
             mobility: Counter::new([
                 core::array::from_fn(|i| MobilityGraph::init(ALL_PIECES[i], Color::White)),
@@ -167,6 +178,13 @@ impl Analysis {
         self.destinies.value[square.to_index()]
     }
 
+    /// The squares that may have been reached by the piece that started on the
+    /// given square.
+    #[inline]
+    pub fn reachable(&self, square: Square) -> BitBoard {
+        self.reachable.value[square.to_index()]
+    }
+
     /// The known lower bound on the number of captures performed by the piece
     /// that started the game on the given square.
     #[inline]
@@ -212,6 +230,7 @@ impl Analysis {
 
     /// Update the candidate origins of the piece on the given square, with the
     /// given value.
+    /// Returns a boolean value indicating whether the update changed anything.
     pub(crate) fn update_origins(&mut self, square: Square, value: BitBoard) -> bool {
         if self.origins.value[square.to_index()] == value {
             return false;
@@ -228,8 +247,7 @@ impl Analysis {
 
     /// Update the candidate destinies of the piece that started on the given
     /// square, with the given value.
-    /// Returns a boolean value indicating whether the update actually changed
-    /// the known information on destinies.
+    /// Returns a boolean value indicating whether the update changed anything.
     pub(crate) fn update_destinies(&mut self, square: Square, value: BitBoard) -> bool {
         if self.destinies.value[square.to_index()] == value {
             return false;
@@ -245,12 +263,85 @@ impl Analysis {
         true
     }
 
+    /// Update the reachable squares of the piece that started on the given
+    /// square, with the given value.
+    /// Returns a boolean value indicating whether the update changed anything.
+    pub(crate) fn update_reachable(&mut self, square: Square, value: BitBoard) -> bool {
+        if self.reachable.value[square.to_index()] == value {
+            return false;
+        }
+        self.reachable.value[square.to_index()] = value;
+        self.reachable.counter += 1;
+        true
+    }
+
+    /// Updates the mobility graph of the given piece and the given color, by
+    /// removing all connections from the given square.
+    /// Returns a boolean value indicating whether the update changed anything.
+    pub(crate) fn remove_outgoing_edges(
+        &mut self,
+        piece: Piece,
+        color: Color,
+        square: Square,
+    ) -> bool {
+        let progress =
+            self.mobility.value[color.to_index()][piece.to_index()].remove_outgoing_edges(square);
+        if progress {
+            self.mobility.counter += 1
+        }
+        progress
+    }
+
+    /// Updates the mobility graph of the given piece and the given color, by
+    /// removing all connections into the given square.
+    /// Returns a boolean value indicating whether the update changed anything.
+    pub(crate) fn remove_incoming_edges(
+        &mut self,
+        piece: Piece,
+        color: Color,
+        square: Square,
+    ) -> bool {
+        let progress =
+            self.mobility.value[color.to_index()][piece.to_index()].remove_incoming_edges(square);
+        if progress {
+            self.mobility.counter += 1
+        }
+        progress
+    }
+
+    /// Updates the mobility graph of the given piece and the given color, by
+    /// removing all the connections that pass through the given square.
+    /// Returns a boolean value indicating whether the update changed anything.
+    pub(crate) fn remove_edges_passing_through_square(
+        &mut self,
+        piece: Piece,
+        color: Color,
+        square: Square,
+    ) -> bool {
+        let mut progress = false;
+        for source in get_rook_rays(square) | get_bishop_rays(square) {
+            for target in chess::line(square, source)
+                & !BitBoard::from_square(square)
+                & !BitBoard::from_square(source)
+            {
+                if (BitBoard::from_square(square) & chess::between(source, target)) != EMPTY {
+                    progress |= self.mobility.value[color.to_index()][piece.to_index()]
+                        .remove_edge(source, target);
+                }
+            }
+        }
+        if progress {
+            self.mobility.counter += 1
+        }
+        progress
+    }
+
     /// Update the known lower bound on the number of captures performed by the
     /// piece that started the game on the given square, with the given
     /// value.
     #[cfg(test)]
     pub(crate) fn update_captures_lower_bound(&mut self, square: Square, bound: i32) -> bool {
-        if self.captures_bounds.value[square.to_index()].0 == bound {
+        if self.captures_bounds.value[square.to_index()].0 >= bound {
             return false;
         }
         self.captures_bounds.value[square.to_index()].0 = bound;
@@ -262,7 +353,7 @@ impl Analysis {
     /// piece that started the game on the given square, with the given
     /// value.
     pub(crate) fn update_captures_upper_bound(&mut self, square: Square, bound: i32) -> bool {
-        if self.captures_bounds.value[square.to_index()].1 == bound {
+        if self.captures_bounds.value[square.to_index()].1 <= bound {
             return false;
         }
         self.captures_bounds.value[square.to_index()].1 = bound;
@@ -284,12 +375,25 @@ impl fmt::Display for Analysis {
             writeln!(f, "]")?;
         }
         writeln!(f, "\ndestinies (cnt: {}):\n", self.destinies.counter)?;
-        for square in *Board::default().combined() & !self.steady.value {
+        for square in *Board::default().combined() {
+            //& !self.steady.value {
             if self.destinies(square) == !EMPTY {
                 writeln!(f, "  {}, -> ANY", square)?;
             } else {
                 write!(f, "  {} -> [", square)?;
                 for destiny in self.destinies(square) {
+                    write!(f, "{},", destiny)?;
+                }
+                writeln!(f, "]")?;
+            }
+        }
+        writeln!(f, "\nreachable (cnt: {}):\n", self.reachable.counter)?;
+        for square in *Board::default().combined() {
+            if self.reachable(square) == !EMPTY {
+                writeln!(f, "  {}, -> ANY", square)?;
+            } else {
+                write!(f, "  {} -> [", square)?;
+                for destiny in self.reachable(square) {
                     write!(f, "{},", destiny)?;
                 }
                 writeln!(f, "]")?;

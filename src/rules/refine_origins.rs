@@ -24,7 +24,7 @@ impl Rule for RefineOriginsRule {
     }
 
     fn is_applicable(&self, analysis: &Analysis) -> bool {
-        self.origins_counter != analysis.origins.counter() || self.origins_counter == 0
+        self.origins_counter != analysis.origins.counter()
     }
 
     fn apply(&self, analysis: &mut Analysis) -> bool {

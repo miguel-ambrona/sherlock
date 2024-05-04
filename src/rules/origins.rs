@@ -5,7 +5,7 @@
 //! Queens, rooks, bishops and knights may also come from their relative 2nd
 //! rank, as they may be promoted.
 
-use chess::{BitBoard, Piece, Square, EMPTY};
+use chess::{BitBoard, Piece, Square};
 
 use super::{Analysis, Rule};
 use crate::utils::square_color;
@@ -15,26 +15,26 @@ use crate::utils::square_color;
 // apply it again.
 #[derive(Debug)]
 pub struct OriginsRule {
-    steady: BitBoard,
+    steady_counter: usize,
 }
 
 impl Rule for OriginsRule {
     fn new() -> Self {
-        OriginsRule { steady: EMPTY }
+        OriginsRule { steady_counter: 0 }
     }
 
     fn update(&mut self, analysis: &Analysis) {
-        self.steady = analysis.steady.value;
+        self.steady_counter = analysis.steady.counter();
     }
 
     fn is_applicable(&self, analysis: &Analysis) -> bool {
-        self.steady != analysis.steady.value || self.steady == EMPTY
+        self.steady_counter != analysis.steady.counter()
     }
 
     fn apply(&self, analysis: &mut Analysis) -> bool {
         let mut progress = false;
 
-        for square in *analysis.board.combined() & analysis.steady.value & !self.steady {
+        for square in analysis.steady.value {
             let square_origins = BitBoard::from_square(square);
             progress |= analysis.update_origins(square, square_origins);
         }
