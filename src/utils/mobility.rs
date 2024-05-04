@@ -104,12 +104,14 @@ impl MobilityGraph {
 
     /// Makes sure the given node is disconnected from the rest of the graph.
     /// Returns `true` iff this operation modifies the graph.
+    #[allow(dead_code)]
     pub fn remove_node_edges(&mut self, node: Square) -> bool {
         self.remove_outgoing_edges(node) || self.remove_incoming_edges(node)
     }
 
     pub fn distance(&self, source: Square, target: Square) -> Option<u32> {
         let node_map = dijkstra(&self.graph, self.node(source), None, |e| *e.weight());
+        println!("{} -> {}\n{:?}", source, target, node_map);
         node_map.get(&self.node(target)).copied()
     }
 }
