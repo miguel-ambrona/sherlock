@@ -4,8 +4,6 @@
 //! from its candidate origins to its current square. The candidate origins that
 //! do not satisfy this condition are filtered out.
 
-use std::cmp::min;
-
 use chess::{BitBoard, EMPTY};
 
 use super::Rule;
@@ -42,7 +40,6 @@ impl Rule for RouteFromOriginsRule {
             let piece = analysis.piece_type_on(square);
             let color = analysis.piece_color_on(square);
             let mut plausible_origins = EMPTY;
-            let mut min_nb_captures = u32::MAX;
             for origin in analysis.origins(square) {
                 let nb_allowed_captures = analysis.nb_captures_upper_bound(origin);
                 if let Some(n) =
@@ -50,12 +47,10 @@ impl Rule for RouteFromOriginsRule {
                 {
                     if n <= nb_allowed_captures as u32 {
                         plausible_origins |= BitBoard::from_square(origin);
-                        min_nb_captures = min(n, min_nb_captures);
                     }
                 }
             }
             progress |= analysis.update_origins(square, plausible_origins);
-            progress |= analysis.update_captures_upper_bound(square, min_nb_captures as i32);
         }
         progress
     }

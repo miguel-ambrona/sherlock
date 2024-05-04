@@ -36,7 +36,7 @@ impl Rule for RouteToReachable {
         let mut progress = false;
 
         for color in ALL_COLORS {
-            for square in COLOR_ORIGINS[color.to_index()] & !analysis.steady.value {
+            for square in COLOR_ORIGINS[color.to_index()] {
                 let piece = Board::default().piece_on(square).unwrap();
                 let nb_allowed_captures = analysis.nb_captures_upper_bound(square);
                 let mut reachable_targets = EMPTY;

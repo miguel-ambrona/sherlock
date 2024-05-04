@@ -34,7 +34,7 @@ impl Rule for DestiniesRule {
     fn apply(&self, analysis: &mut Analysis) -> bool {
         let mut progress = false;
 
-        for square in *analysis.board.combined() & !analysis.steady.value {
+        for square in *analysis.board.combined() {
             if analysis.origins(square).popcnt() == 1 {
                 let origin = analysis.origins(square).to_square();
                 progress |= analysis.update_destinies(origin, BitBoard::from_square(square))

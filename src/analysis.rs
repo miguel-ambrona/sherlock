@@ -1,8 +1,8 @@
 use std::fmt;
 
 use chess::{
-    BitBoard, Board, Color, Piece, Square, ALL_COLORS, ALL_PIECES, EMPTY, NUM_COLORS, NUM_PIECES,
-    NUM_SQUARES,
+    get_bishop_rays, get_rook_rays, BitBoard, Board, Color, Piece, Square, ALL_COLORS, ALL_PIECES,
+    EMPTY, NUM_COLORS, NUM_PIECES, NUM_SQUARES,
 };
 
 use crate::utils::MobilityGraph;
@@ -275,6 +275,67 @@ impl Analysis {
         true
     }
 
+    /// Updates the mobility graph of the given piece and the given color, by
+    /// removing all connections from the given square.
+    /// Returns a boolean value indicating whether the update changed anything.
+    pub(crate) fn remove_outgoing_edges(
+        &mut self,
+        piece: Piece,
+        color: Color,
+        square: Square,
+    ) -> bool {
+        let progress =
+            self.mobility.value[color.to_index()][piece.to_index()].remove_outgoing_edges(square);
+        if progress {
+            self.mobility.counter += 1
+        }
+        progress
+    }
+
+    /// Updates the mobility graph of the given piece and the given color, by
+    /// removing all connections into the given square.
+    /// Returns a boolean value indicating whether the update changed anything.
+    pub(crate) fn remove_incoming_edges(
+        &mut self,
+        piece: Piece,
+        color: Color,
+        square: Square,
+    ) -> bool {
+        let progress =
+            self.mobility.value[color.to_index()][piece.to_index()].remove_incoming_edges(square);
+        if progress {
+            self.mobility.counter += 1
+        }
+        progress
+    }
+
+    /// Updates the mobility graph of the given piece and the given color, by
+    /// removing all the connections that pass through the given square.
+    /// Returns a boolean value indicating whether the update changed anything.
+    pub(crate) fn remove_edges_passing_through_square(
+        &mut self,
+        piece: Piece,
+        color: Color,
+        square: Square,
+    ) -> bool {
+        let mut progress = false;
+        for source in get_rook_rays(square) | get_bishop_rays(square) {
+            for target in chess::line(square, source)
+                & !BitBoard::from_square(square)
+                & !BitBoard::from_square(source)
+            {
+                if (BitBoard::from_square(square) & chess::between(source, target)) != EMPTY {
+                    progress |= self.mobility.value[color.to_index()][piece.to_index()]
+                        .remove_edge(source, target);
+                }
+            }
+        }
+        if progress {
+            self.mobility.counter += 1
+        }
+        progress
+    }
+
     /// Update the known lower bound on the number of captures performed by the
     /// piece that started the game on the given square, with the given
     /// value.
@@ -314,7 +375,8 @@ impl fmt::Display for Analysis {
             writeln!(f, "]")?;
         }
         writeln!(f, "\ndestinies (cnt: {}):\n", self.destinies.counter)?;
-        for square in *Board::default().combined() & !self.steady.value {
+        for square in *Board::default().combined() {
+            //& !self.steady.value {
             if self.destinies(square) == !EMPTY {
                 writeln!(f, "  {}, -> ANY", square)?;
             } else {
