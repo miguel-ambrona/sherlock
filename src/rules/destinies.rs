@@ -5,7 +5,7 @@
 
 use chess::BitBoard;
 
-use super::{Analysis, Rule};
+use super::{Analysis, Rule, ALL_ORIGINS};
 
 #[derive(Debug)]
 pub struct DestiniesRule {
@@ -34,7 +34,7 @@ impl Rule for DestiniesRule {
     fn apply(&self, analysis: &mut Analysis) -> bool {
         let mut progress = false;
 
-        for square in *analysis.board.combined() {
+        for square in ALL_ORIGINS {
             if analysis.origins(square).popcnt() == 1 {
                 let origin = analysis.origins(square).to_square();
                 progress |= analysis.update_destinies(origin, BitBoard::from_square(square))

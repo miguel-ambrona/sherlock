@@ -6,9 +6,8 @@
 
 use chess::{ALL_COLORS, ALL_PIECES};
 
-use crate::utils::checking_predecessors;
-
 use super::{Analysis, Rule};
+use crate::utils::checking_predecessors;
 
 #[derive(Debug)]
 pub struct SteadyMobilityRule {

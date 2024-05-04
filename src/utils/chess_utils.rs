@@ -82,8 +82,8 @@ pub fn predecessors(piece: Piece, color: Color, square: Square) -> BitBoard {
 }
 
 /// A `BitBoard` with the squares from which a piece of the given `Piece` type
-/// and `Color` will always check an opponent king on the given `Square`, independently
-/// of the configuration of other pieces.
+/// and `Color` will always check an opponent king on the given `Square`,
+/// independently of the configuration of other pieces.
 #[inline]
 pub fn checking_predecessors(piece: Piece, color: Color, square: Square) -> BitBoard {
     let mut predecessors = predecessors(piece, color, square);

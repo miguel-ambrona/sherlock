@@ -7,7 +7,7 @@
 use chess::{BitBoard, EMPTY};
 
 use super::Rule;
-use crate::{analysis::Analysis, utils::distance_from_source};
+use crate::{analysis::Analysis, utils::distance_from_origin};
 
 #[derive(Debug)]
 pub struct RouteFromOriginsRule {
@@ -43,7 +43,7 @@ impl Rule for RouteFromOriginsRule {
             for origin in analysis.origins(square) {
                 let nb_allowed_captures = analysis.nb_captures_upper_bound(origin);
                 if let Some(n) =
-                    distance_from_source(&analysis.mobility.value, origin, square, piece, color)
+                    distance_from_origin(&analysis.mobility.value, origin, square, piece, color)
                 {
                     if n <= nb_allowed_captures as u32 {
                         plausible_origins |= BitBoard::from_square(origin);
