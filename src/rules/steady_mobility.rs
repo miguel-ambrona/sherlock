@@ -6,6 +6,8 @@
 
 use chess::{ALL_COLORS, ALL_PIECES};
 
+use crate::utils::checking_predecessors;
+
 use super::{Analysis, Rule};
 
 #[derive(Debug)]
@@ -29,7 +31,7 @@ impl Rule for SteadyMobilityRule {
     fn apply(&self, analysis: &mut Analysis) -> bool {
         let mut progress = false;
 
-        // Remove all arrows that pass through a steady piece
+        // Remove all arrows from/into or that pass through a steady piece
         for square in analysis.steady.value {
             for color in ALL_COLORS {
                 for piece in ALL_PIECES {
@@ -40,13 +42,25 @@ impl Rule for SteadyMobilityRule {
             }
         }
 
+        // Remove all arrows from a square that checks a steady king
+        for king_color in ALL_COLORS {
+            let king_square = analysis.board.king_square(king_color);
+            if analysis.is_steady(king_square) {
+                for piece in ALL_PIECES {
+                    for checking_square in checking_predecessors(piece, !king_color, king_square) {
+                        progress |=
+                            analysis.remove_outgoing_edges(piece, !king_color, checking_square);
+                    }
+                }
+            }
+        }
+
         progress
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
 
     use chess::{get_rank, Board, Color::*, Piece::*, Rank};
 
@@ -54,9 +68,8 @@ mod tests {
     use crate::{rules::Rule, utils::*};
 
     #[test]
-    fn test_steady_mobility_rule() {
-        let board = Board::from_str("1k6/8/8/8/8/8/8/K7 w - -").expect("Valid Position");
-        let mut analysis = Analysis::new(&board);
+    fn test_steady_pieces() {
+        let mut analysis = Analysis::new(&Board::default());
         let steady_mobility = SteadyMobilityRule::new();
 
         steady_mobility.apply(&mut analysis);
@@ -84,6 +97,38 @@ mod tests {
         // H8 should no longer be reachable
         assert_eq!(
             distance_to_target(&analysis.mobility.value, H1, H8, Rook, White),
+            None
+        );
+    }
+
+    #[test]
+    fn test_steady_king() {
+        let mut analysis = Analysis::new(&Board::default());
+        let steady_mobility = SteadyMobilityRule::new();
+
+        // learn that the black king is steady
+        analysis.update_steady(bitboard_of_squares(&[E8]));
+        steady_mobility.apply(&mut analysis);
+
+        // make sure a white pawn can still go from E7 to F8
+        assert_eq!(
+            distance_to_target(&analysis.mobility.value, E7, F8, Pawn, White),
+            Some(1)
+        );
+
+        // but no white pawn can go from D7 to C8
+        assert_eq!(
+            distance_to_target(&analysis.mobility.value, D7, C8, Pawn, White),
+            None
+        );
+
+        // and a white knight can move to F6, but not from F6
+        assert_eq!(
+            distance_to_target(&analysis.mobility.value, G1, F6, Knight, White),
+            Some(0)
+        );
+        assert_eq!(
+            distance_to_target(&analysis.mobility.value, F6, G1, Knight, White),
             None
         );
     }

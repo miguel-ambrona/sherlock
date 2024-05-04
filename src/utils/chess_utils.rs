@@ -1,8 +1,8 @@
 //! Util functions.
 
 use chess::{
-    get_bishop_rays, get_king_moves, get_knight_moves, get_pawn_attacks, get_pawn_quiets, get_rank,
-    get_rook_rays, BitBoard, Board, Color, Piece, Square, EMPTY,
+    get_bishop_rays, get_file, get_king_moves, get_knight_moves, get_pawn_attacks, get_pawn_quiets,
+    get_rank, get_rook_rays, BitBoard, Board, Color, Piece, Square, EMPTY,
 };
 
 use super::LIGHT_SQUARES;
@@ -79,6 +79,19 @@ pub fn predecessors(piece: Piece, color: Color, square: Square) -> BitBoard {
         predecessors &= !get_rank(color.to_my_backrank());
     }
     predecessors & (get_king_moves(square) | get_knight_moves(square))
+}
+
+/// A `BitBoard` with the squares from which a piece of the given `Piece` type
+/// and `Color` will always check an opponent king on the given `Square`, independently
+/// of the configuration of other pieces.
+#[inline]
+pub fn checking_predecessors(piece: Piece, color: Color, square: Square) -> BitBoard {
+    let mut predecessors = predecessors(piece, color, square);
+    // Remove quiet pawn moves
+    if piece == Piece::Pawn {
+        predecessors &= !get_file(square.get_file());
+    }
+    predecessors
 }
 
 #[cfg(test)]
