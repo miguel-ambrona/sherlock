@@ -13,6 +13,7 @@ use crate::{analysis::Analysis, utils::distance_from_origin};
 pub struct RouteFromOriginsRule {
     mobility_counter: usize,
     captures_bounds_counter: usize,
+    steady_counter: usize,
 }
 
 impl Rule for RouteFromOriginsRule {
@@ -20,17 +21,20 @@ impl Rule for RouteFromOriginsRule {
         Self {
             mobility_counter: 0,
             captures_bounds_counter: 0,
+            steady_counter: 0,
         }
     }
 
     fn update(&mut self, analysis: &Analysis) {
         self.mobility_counter = analysis.mobility.counter();
         self.captures_bounds_counter = analysis.captures_bounds.counter();
+        self.steady_counter = analysis.steady.counter();
     }
 
     fn is_applicable(&self, analysis: &Analysis) -> bool {
         self.mobility_counter != analysis.mobility.counter()
             || self.captures_bounds_counter != analysis.captures_bounds.counter()
+            || self.steady_counter != analysis.steady.counter()
     }
 
     fn apply(&self, analysis: &mut Analysis) -> bool {
