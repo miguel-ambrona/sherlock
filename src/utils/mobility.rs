@@ -136,8 +136,8 @@ impl MobilityGraph {
     /// This function returns `None` if the route is impossible.
     pub fn forced_captures(&self, source: Square, target: Square) -> Option<(BitBoard, u32)> {
         let source = self.node(source);
-        let target = |n| n == self.node(target);
-        match astar(&self.graph, source, target, |e| *e.weight(), |_| 0) {
+        let finish = |n| n == self.node(target);
+        match astar(&self.graph, source, finish, |e| *e.weight(), |_| 0) {
             None => None,
             Some((distance, path)) => {
                 let mut forced = EMPTY;
@@ -154,9 +154,9 @@ impl MobilityGraph {
                         }
                         weight
                     };
-                    if let Some((new_distance, _)) =
-                        astar(&self.graph, source, target, new_weights, |_| distance)
-                    {
+                    let node_map =
+                        dijkstra(&self.graph, source, Some(self.node(target)), new_weights);
+                    if let Some(new_distance) = node_map.get(&self.node(target)).copied() {
                         if new_distance == distance + DELTA {
                             forced |= BitBoard::from_square(ALL_SQUARES[node.index()])
                         }
@@ -286,7 +286,8 @@ pub fn tombs_to_target(
     // the pawn promotes before going to target
     if final_piece != Some(Piece::Pawn) {
         let candidate_promotion_pieces = match final_piece {
-            None => vec![Piece::Queen, Piece::Rook, Piece::Bishop, Piece::Knight],
+            // knights first, they are more likely to be able to reach any square after promotion
+            None => vec![Piece::Knight, Piece::Queen, Piece::Rook, Piece::Bishop],
             Some(piece) => vec![piece],
         };
         for promoting_square in get_rank(color.to_their_backrank()) {
@@ -297,6 +298,8 @@ pub fn tombs_to_target(
                     if d2.is_some() && d1 + d2.unwrap() <= nb_allowed_captures {
                         tombs &= path_tombs;
                         min_distance = min(d1 + d2.unwrap(), min_distance);
+                        // the promotion piece is unimportant, we can stop now that a path was found
+                        break;
                     }
                 }
             }
