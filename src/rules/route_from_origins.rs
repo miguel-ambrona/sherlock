@@ -45,6 +45,10 @@ impl Rule for RouteFromOriginsRule {
             let color = analysis.piece_color_on(square);
             let mut plausible_origins = EMPTY;
             for origin in analysis.origins(square) {
+                if square == origin {
+                    plausible_origins |= BitBoard::from_square(origin);
+                    continue;
+                }
                 let nb_allowed_captures = analysis.nb_captures_upper_bound(origin);
                 if let Some(n) =
                     distance_from_origin(&analysis.mobility.value, origin, square, piece, color)
