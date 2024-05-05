@@ -286,6 +286,19 @@ impl Analysis {
         true
     }
 
+    /// Update the tombs of the piece that started on the given square, with the
+    /// given value.
+    /// Returns a boolean value indicating whether the update changed anything.
+    pub(crate) fn update_tombs(&mut self, square: Square, value: BitBoard) -> bool {
+        let new_tombs = self.tombs.value[square.to_index()] | value;
+        if self.tombs.value[square.to_index()] == new_tombs {
+            return false;
+        }
+        self.tombs.value[square.to_index()] = new_tombs;
+        self.tombs.counter += 1;
+        true
+    }
+
     /// Updates the mobility graph of the given piece and the given color, by
     /// removing all connections from the given square.
     /// Returns a boolean value indicating whether the update changed anything.
@@ -384,7 +397,6 @@ impl Analysis {
     /// Update the known lower bound on the number of captures performed by the
     /// piece that started the game on the given square, with the given
     /// value.
-    #[cfg(test)]
     pub(crate) fn update_captures_lower_bound(&mut self, square: Square, bound: i32) -> bool {
         if self.captures_bounds.value[square.to_index()].0 >= bound {
             return false;

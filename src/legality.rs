@@ -15,6 +15,7 @@ fn init_rules() -> Vec<Box<dyn Rule>> {
         Box::new(CapturesBoundsRule::new()),
         Box::new(RouteFromOriginsRule::new()),
         Box::new(RouteToReachable::new()),
+        Box::new(TombsRule::new()),
     ]
 }
 

@@ -1,12 +1,14 @@
 //! Graph functions.
 
+use std::cmp::min;
+
 use chess::{
-    get_pawn_attacks, get_rank, BitBoard, Color, Piece, Square, ALL_SQUARES, EMPTY, NUM_COLORS,
-    NUM_PIECES, NUM_SQUARES,
+    get_pawn_attacks, get_rank, BitBoard, Color, Piece, Rank, Square, ALL_SQUARES, EMPTY,
+    NUM_COLORS, NUM_PIECES, NUM_SQUARES,
 };
 use petgraph::{
-    algo::dijkstra,
-    graph::{DiGraph, EdgeIndex, NodeIndex},
+    algo::{astar, dijkstra},
+    graph::{DiGraph, EdgeIndex, EdgeReference, NodeIndex},
     visit::EdgeRef,
     Direction::{Incoming, Outgoing},
 };
@@ -116,8 +118,53 @@ impl MobilityGraph {
     }
 
     pub fn distance(&self, source: Square, target: Square) -> Option<u32> {
+        // switch to A*?
         let node_map = dijkstra(&self.graph, self.node(source), None, |e| *e.weight());
         node_map.get(&self.node(target)).copied()
+    }
+
+    /// Returns a pair including:
+    /// - a `BitBoard` with all the squares where a capture must have taken
+    ///   place for going from `source` to `target` in this mobility graph,
+    /// - a lower bound in the number of captures to navigate from `source` to
+    ///   `target`.
+    ///
+    /// Note that the lower bound may be greater than the BitBoard's popcnt,
+    /// because, e.g. it may be possible that 2 captures are needed, while
+    /// only 1 square can be proven to be certainly in the path.
+    ///
+    /// This function returns `None` if the route is impossible.
+    pub fn forced_captures(&self, source: Square, target: Square) -> Option<(BitBoard, u32)> {
+        let source = self.node(source);
+        let target = |n| n == self.node(target);
+        match astar(&self.graph, source, target, |e| *e.weight(), |_| 0) {
+            None => None,
+            Some((distance, path)) => {
+                let mut forced = EMPTY;
+                for node in path.iter().skip(1) {
+                    // If after significantly increasing the weight of capturing edges that arrive
+                    // to `node`, the distance from source to target increases by the same amount,
+                    // it must be the case that `node` is an essential (capturing) square.
+
+                    const DELTA: u32 = 1000;
+                    let new_weights = |e: EdgeReference<u32, u32>| {
+                        let mut weight = *e.weight();
+                        if weight == 1 && e.target() == *node {
+                            weight += DELTA;
+                        }
+                        weight
+                    };
+                    if let Some((new_distance, _)) =
+                        astar(&self.graph, source, target, new_weights, |_| distance)
+                    {
+                        if new_distance == distance + DELTA {
+                            forced |= BitBoard::from_square(ALL_SQUARES[node.index()])
+                        }
+                    }
+                }
+                Some((forced, distance))
+            }
+        }
     }
 }
 
@@ -194,6 +241,74 @@ pub fn distance_to_target(
         }
     }
     distance
+}
+
+/// The squares where the piece that started the game on `origin` must have
+/// captured enemy pieces in order to go from `origin` to `target`, with at most
+/// `nb_allowed_captures` captures, according to the current information about
+/// the position.
+/// If `final_piece` is set, the piece that lands on `target` must
+/// be of this type, and a promotion may need to take place.
+/// If `final_piece = None`, a promotion may or may not have happened before
+/// reaching `target`.
+///
+/// This function also returns the minimum number of captures necessary to
+/// perform the journey as a second argument.
+///
+/// If the specified route is impossible, this function returns `EMPTY`.
+pub fn tombs_to_target(
+    mobility_graphs: &[[MobilityGraph; NUM_PIECES]; NUM_COLORS],
+    origin: Square,
+    target: Square,
+    nb_allowed_captures: u32,
+    final_piece: Option<Piece>,
+) -> (BitBoard, u32) {
+    let color = match origin.get_rank() {
+        Rank::Second => Color::White,
+        Rank::Seventh => Color::Black,
+        // we only know how to derive non-trivial tombs information for pawns
+        _ => return (EMPTY, 0),
+    };
+    let mut tombs = !EMPTY;
+    let mut min_distance = 16;
+    let pawn_graph = &mobility_graphs[color.to_index()][Piece::Pawn.to_index()];
+
+    // the pawn goes directly to target
+    if final_piece.is_none() || final_piece == Some(Piece::Pawn) {
+        if let Some((path_tombs, distance)) = pawn_graph.forced_captures(origin, target) {
+            if distance <= nb_allowed_captures {
+                tombs &= path_tombs;
+                min_distance = min(distance, min_distance);
+            }
+        }
+    }
+
+    // the pawn promotes before going to target
+    if final_piece != Some(Piece::Pawn) {
+        let candidate_promotion_pieces = match final_piece {
+            None => vec![Piece::Queen, Piece::Rook, Piece::Bishop, Piece::Knight],
+            Some(piece) => vec![piece],
+        };
+        for promoting_square in get_rank(color.to_their_backrank()) {
+            if let Some((path_tombs, d1)) = pawn_graph.forced_captures(origin, promoting_square) {
+                for piece in candidate_promotion_pieces.clone() {
+                    let piece_graph = &mobility_graphs[color.to_index()][piece.to_index()];
+                    let d2 = piece_graph.distance(promoting_square, target);
+                    if d2.is_some() && d1 + d2.unwrap() <= nb_allowed_captures {
+                        tombs &= path_tombs;
+                        min_distance = min(d1 + d2.unwrap(), min_distance);
+                    }
+                }
+            }
+        }
+    }
+
+    // if at this point tombs == !EMPTY, all routes were impossible, so return EMPTY
+    if tombs == !EMPTY {
+        return (EMPTY, min_distance);
+    }
+
+    (tombs, min_distance)
 }
 
 #[cfg(test)]
