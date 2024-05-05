@@ -232,10 +232,11 @@ impl Analysis {
     /// given value.
     /// Returns a boolean value indicating whether the update changed anything.
     pub(crate) fn update_origins(&mut self, square: Square, value: BitBoard) -> bool {
-        if self.origins.value[square.to_index()] == value {
+        let new_origins = self.origins.value[square.to_index()] & value;
+        if self.origins.value[square.to_index()] == new_origins {
             return false;
         }
-        self.origins.value[square.to_index()] = value;
+        self.origins.value[square.to_index()] = new_origins;
         self.origins.counter += 1;
 
         // if the set of candidate origins of a piece is empty, the position is illegal
@@ -249,10 +250,11 @@ impl Analysis {
     /// square, with the given value.
     /// Returns a boolean value indicating whether the update changed anything.
     pub(crate) fn update_destinies(&mut self, square: Square, value: BitBoard) -> bool {
-        if self.destinies.value[square.to_index()] == value {
+        let new_destinies = self.destinies.value[square.to_index()] & value;
+        if self.destinies.value[square.to_index()] == new_destinies {
             return false;
         }
-        self.destinies.value[square.to_index()] = value;
+        self.destinies.value[square.to_index()] = new_destinies;
         self.destinies.counter += 1;
 
         // if the set of candidate destinies of a piece is empty, the position is
@@ -267,10 +269,11 @@ impl Analysis {
     /// square, with the given value.
     /// Returns a boolean value indicating whether the update changed anything.
     pub(crate) fn update_reachable(&mut self, square: Square, value: BitBoard) -> bool {
-        if self.reachable.value[square.to_index()] == value {
+        let new_reachable = self.reachable.value[square.to_index()] & value;
+        if self.reachable.value[square.to_index()] == new_reachable {
             return false;
         }
-        self.reachable.value[square.to_index()] = value;
+        self.reachable.value[square.to_index()] = new_reachable;
         self.reachable.counter += 1;
         true
     }
@@ -325,6 +328,40 @@ impl Analysis {
                 & !BitBoard::from_square(source)
             {
                 if (BitBoard::from_square(square) & chess::between(source, target)) != EMPTY {
+                    progress |= self.mobility.value[color.to_index()][piece.to_index()]
+                        .remove_edge(source, target);
+                }
+            }
+        }
+        if progress {
+            self.mobility.counter += 1
+        }
+        progress
+    }
+
+    /// Updates the mobility graph of the given piece and the given color, by
+    /// removing all the connections that pass in a line through the two given
+    /// squares (inclusive, i.e. moves that go from square1 to square2 are also
+    /// removed).
+    /// Returns a boolean value indicating whether the update changed anything.
+    pub(crate) fn remove_edges_passing_through_squares(
+        &mut self,
+        piece: Piece,
+        color: Color,
+        square1: Square,
+        square2: Square,
+    ) -> bool {
+        debug_assert_ne!(square1, square2);
+        let mut progress = false;
+        let squares = BitBoard::from_square(square1) | BitBoard::from_square(square2);
+        for source in chess::line(square1, square2) {
+            for target in chess::line(square1, square2) & !BitBoard::from_square(source) {
+                // the squares between source and target, including these
+                let segment = chess::between(source, target)
+                    | BitBoard::from_square(source)
+                    | BitBoard::from_square(target);
+                // if both square1 and square2 are included in the segment
+                if squares & segment == squares {
                     progress |= self.mobility.value[color.to_index()][piece.to_index()]
                         .remove_edge(source, target);
                 }

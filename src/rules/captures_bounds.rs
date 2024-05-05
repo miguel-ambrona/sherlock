@@ -77,7 +77,7 @@ mod tests {
     use chess::{Board, Square};
 
     use super::*;
-    use crate::{analysis::Analysis, rules::Rule, utils::*};
+    use crate::{analysis::Analysis, utils::*};
 
     #[test]
     fn test_captures_bounds_rule() {

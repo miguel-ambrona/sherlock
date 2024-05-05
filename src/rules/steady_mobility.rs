@@ -64,7 +64,7 @@ mod tests {
     use chess::{get_rank, Board, Color::*, Piece::*, Rank};
 
     use super::*;
-    use crate::{rules::Rule, utils::*};
+    use crate::utils::*;
 
     #[test]
     fn test_steady_pieces() {

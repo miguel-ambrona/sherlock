@@ -59,6 +59,12 @@ impl MobilityGraph {
             .add_edge(self.node(source), self.node(target), weight);
     }
 
+    #[cfg(test)]
+    /// Tells whether there exists an edge between the two given squares.
+    pub fn exists_edge(&self, source: Square, target: Square) -> bool {
+        self.edge(source, target).is_some()
+    }
+
     /// Makes sure the edge between the given squares disappears from the graph.
     /// Returns `true` iff this operation modifies the graph.
     pub fn remove_edge(&mut self, source: Square, target: Square) -> bool {
