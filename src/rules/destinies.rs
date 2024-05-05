@@ -1,11 +1,8 @@
 //! Destinies rule.
 //!
-//! If the piece currently on `s` has only one candidate origin `o`, then the
-//! destiny of `o` must be `s`.
+//! We filter out destinies that are not reachable.
 
-use chess::BitBoard;
-
-use super::{Analysis, Rule};
+use super::{Analysis, Rule, ALL_ORIGINS};
 
 #[derive(Debug)]
 pub struct DestiniesRule {
@@ -34,48 +31,10 @@ impl Rule for DestiniesRule {
     fn apply(&self, analysis: &mut Analysis) -> bool {
         let mut progress = false;
 
-        for square in *analysis.board.combined() {
-            if analysis.origins(square).popcnt() == 1 {
-                let origin = analysis.origins(square).to_square();
-                progress |= analysis.update_destinies(origin, BitBoard::from_square(square))
-            }
-
+        for square in ALL_ORIGINS {
             let reachable_destinies = analysis.destinies(square) & analysis.reachable(square);
             progress |= analysis.update_destinies(square, reachable_destinies)
         }
         progress
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::str::FromStr;
-
-    use chess::{Board, EMPTY};
-
-    use super::*;
-    use crate::{rules::Rule, utils::*};
-
-    #[test]
-    fn test_destinies_rule() {
-        let board = Board::from_str("1k6/8/8/8/8/8/8/K7 w - -").expect("Valid Position");
-        let mut analysis = Analysis::new(&board);
-        let destinies_rule = DestiniesRule::new();
-
-        destinies_rule.apply(&mut analysis);
-
-        // we should not have any information on destinies yet
-        assert_eq!(analysis.destinies(E1), !EMPTY);
-        assert_eq!(analysis.destinies(E7), !EMPTY);
-
-        // learn that E1 is the only candidate origin of the piece on A1
-        analysis.update_origins(A1, bitboard_of_squares(&[E1]));
-        destinies_rule.apply(&mut analysis);
-
-        // the destinies of E1 must have been updated to A1
-        assert_eq!(analysis.destinies(E1), bitboard_of_squares(&[A1]));
-
-        // others are still uncertain
-        assert_eq!(analysis.destinies(E7), !EMPTY);
     }
 }

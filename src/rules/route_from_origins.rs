@@ -7,12 +7,13 @@
 use chess::{BitBoard, EMPTY};
 
 use super::Rule;
-use crate::{analysis::Analysis, utils::distance_from_source};
+use crate::{analysis::Analysis, utils::distance_from_origin};
 
 #[derive(Debug)]
 pub struct RouteFromOriginsRule {
     mobility_counter: usize,
     captures_bounds_counter: usize,
+    steady_counter: usize,
 }
 
 impl Rule for RouteFromOriginsRule {
@@ -20,17 +21,20 @@ impl Rule for RouteFromOriginsRule {
         Self {
             mobility_counter: 0,
             captures_bounds_counter: 0,
+            steady_counter: 0,
         }
     }
 
     fn update(&mut self, analysis: &Analysis) {
         self.mobility_counter = analysis.mobility.counter();
         self.captures_bounds_counter = analysis.captures_bounds.counter();
+        self.steady_counter = analysis.steady.counter();
     }
 
     fn is_applicable(&self, analysis: &Analysis) -> bool {
         self.mobility_counter != analysis.mobility.counter()
             || self.captures_bounds_counter != analysis.captures_bounds.counter()
+            || self.steady_counter != analysis.steady.counter()
     }
 
     fn apply(&self, analysis: &mut Analysis) -> bool {
@@ -43,7 +47,7 @@ impl Rule for RouteFromOriginsRule {
             for origin in analysis.origins(square) {
                 let nb_allowed_captures = analysis.nb_captures_upper_bound(origin);
                 if let Some(n) =
-                    distance_from_source(&analysis.mobility.value, origin, square, piece, color)
+                    distance_from_origin(&analysis.mobility.value, origin, square, piece, color)
                 {
                     if n <= nb_allowed_captures as u32 {
                         plausible_origins |= BitBoard::from_square(origin);
