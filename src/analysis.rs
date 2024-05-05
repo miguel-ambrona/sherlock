@@ -5,7 +5,7 @@ use chess::{
     EMPTY, NUM_COLORS, NUM_PIECES, NUM_SQUARES,
 };
 
-use crate::utils::MobilityGraph;
+use crate::{rules::ALL_ORIGINS, utils::MobilityGraph};
 
 pub(crate) struct Counter<T> {
     pub(crate) value: T,
@@ -72,6 +72,13 @@ pub struct Analysis {
     /// the piece which started on `s` has definitely not reached square `t`.
     pub(crate) reachable: Counter<[BitBoard; NUM_SQUARES]>,
 
+    /// The squares where opponent pieces have certainly been captured.
+    ///
+    /// For `s : Square`, `tombs[s.to_index()]` is a `BitBoard` encoding
+    /// a set of squares where the piece that started on `s` has certainly
+    /// captured an enemy piece.
+    pub(crate) tombs: Counter<[BitBoard; NUM_SQUARES]>,
+
     /// A lower-upper bound pair on the number of captures performed by every
     /// piece.
     ///
@@ -104,10 +111,11 @@ impl Analysis {
         Analysis {
             board: *board,
             steady: Counter::new(EMPTY),
-            origins: Counter::new([!EMPTY; 64]),
-            destinies: Counter::new([!EMPTY; 64]),
-            reachable: Counter::new([!EMPTY; 64]),
-            captures_bounds: Counter::new([(0, 15); 64]),
+            origins: Counter::new([!EMPTY; NUM_SQUARES]),
+            destinies: Counter::new([!EMPTY; NUM_SQUARES]),
+            reachable: Counter::new([!EMPTY; NUM_SQUARES]),
+            tombs: Counter::new([EMPTY; NUM_SQUARES]),
+            captures_bounds: Counter::new([(0, 15); NUM_SQUARES]),
             mobility: Counter::new([
                 core::array::from_fn(|i| MobilityGraph::init(ALL_PIECES[i], Color::White)),
                 core::array::from_fn(|i| MobilityGraph::init(ALL_PIECES[i], Color::Black)),
@@ -278,6 +286,19 @@ impl Analysis {
         true
     }
 
+    /// Update the tombs of the piece that started on the given square, with the
+    /// given value.
+    /// Returns a boolean value indicating whether the update changed anything.
+    pub(crate) fn update_tombs(&mut self, square: Square, value: BitBoard) -> bool {
+        let new_tombs = self.tombs.value[square.to_index()] | value;
+        if self.tombs.value[square.to_index()] == new_tombs {
+            return false;
+        }
+        self.tombs.value[square.to_index()] = new_tombs;
+        self.tombs.counter += 1;
+        true
+    }
+
     /// Updates the mobility graph of the given piece and the given color, by
     /// removing all connections from the given square.
     /// Returns a boolean value indicating whether the update changed anything.
@@ -376,7 +397,6 @@ impl Analysis {
     /// Update the known lower bound on the number of captures performed by the
     /// piece that started the game on the given square, with the given
     /// value.
-    #[cfg(test)]
     pub(crate) fn update_captures_lower_bound(&mut self, square: Square, bound: i32) -> bool {
         if self.captures_bounds.value[square.to_index()].0 >= bound {
             return false;
@@ -399,43 +419,35 @@ impl Analysis {
     }
 }
 
+fn write_array(
+    f: &mut fmt::Formatter,
+    name: &str,
+    array: &Counter<[BitBoard; NUM_SQUARES]>,
+    squares: BitBoard,
+) -> fmt::Result {
+    writeln!(f, "\n{} (cnt: {}):\n", name, array.counter())?;
+    for square in squares {
+        if array.value[square.to_index()] == !EMPTY {
+            writeln!(f, "  {}: ALL", square)?;
+        } else {
+            write!(f, "  {}: [", square)?;
+            for element in array.value[square.to_index()] {
+                write!(f, "{},", element)?;
+            }
+            writeln!(f, "]")?;
+        }
+    }
+    Ok(())
+}
+
 impl fmt::Display for Analysis {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "FEN: {}\n", self.board,)?;
         writeln!(f, "steady:\n{}", self.steady.value.reverse_colors())?;
-        writeln!(f, "\norigins (cnt: {}):\n", self.origins.counter)?;
-        for square in *self.board.combined() & !self.steady.value {
-            write!(f, "  {} <- [", square)?;
-            for origin in self.origins(square) {
-                write!(f, "{},", origin)?;
-            }
-            writeln!(f, "]")?;
-        }
-        writeln!(f, "\ndestinies (cnt: {}):\n", self.destinies.counter)?;
-        for square in *Board::default().combined() {
-            //& !self.steady.value {
-            if self.destinies(square) == !EMPTY {
-                writeln!(f, "  {}, -> ANY", square)?;
-            } else {
-                write!(f, "  {} -> [", square)?;
-                for destiny in self.destinies(square) {
-                    write!(f, "{},", destiny)?;
-                }
-                writeln!(f, "]")?;
-            }
-        }
-        writeln!(f, "\nreachable (cnt: {}):\n", self.reachable.counter)?;
-        for square in *Board::default().combined() {
-            if self.reachable(square) == !EMPTY {
-                writeln!(f, "  {}, -> ANY", square)?;
-            } else {
-                write!(f, "  {} -> [", square)?;
-                for destiny in self.reachable(square) {
-                    write!(f, "{},", destiny)?;
-                }
-                writeln!(f, "]")?;
-            }
-        }
+        write_array(f, "origins", &self.origins, *self.board.combined())?;
+        write_array(f, "destinies", &self.destinies, ALL_ORIGINS)?;
+        write_array(f, "reachable", &self.reachable, ALL_ORIGINS)?;
+        write_array(f, "tombs", &self.tombs, ALL_ORIGINS)?;
         writeln!(
             f,
             "\ncaptures bounds (cnt: {}):\n",
