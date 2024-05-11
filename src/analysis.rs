@@ -1,9 +1,9 @@
 use std::fmt;
 
 use chess::{
-    get_bishop_rays, get_rank, get_rook_rays, BitBoard, Board, Color, File, Piece, Rank, Square,
-    ALL_COLORS, ALL_FILES, ALL_PIECES, EMPTY, NUM_COLORS, NUM_FILES, NUM_PIECES,
-    NUM_PROMOTION_PIECES, NUM_SQUARES,
+    get_bishop_rays, get_rook_rays, BitBoard, Board, Color, File, Piece, Square, ALL_COLORS,
+    ALL_FILES, ALL_PIECES, EMPTY, NUM_COLORS, NUM_FILES, NUM_PIECES, NUM_PROMOTION_PIECES,
+    NUM_SQUARES, PROMOTION_PIECES,
 };
 
 use crate::{
@@ -588,12 +588,17 @@ impl Analysis {
     }
 }
 
-fn write_bitboard(f: &mut fmt::Formatter, name: Square, bitboard: BitBoard) -> fmt::Result {
+fn write_bitboard(f: &mut fmt::Formatter, name: String, bitboard: BitBoard) -> fmt::Result {
     if bitboard == !EMPTY {
         writeln!(f, "  {}: ALL", name)?;
     } else {
-        write!(f, "  {}: {{ ", name)?;
-        for element in bitboard {
+        let (negated, bb) = if bitboard.popcnt() < 40 {
+            (" ", bitboard)
+        } else {
+            ("!", !bitboard)
+        };
+        write!(f, "  {}: {}{{ ", name, negated)?;
+        for element in bb {
             write!(f, "{} ", element)?;
         }
         writeln!(f, "}}")?;
@@ -604,18 +609,27 @@ fn write_bitboard(f: &mut fmt::Formatter, name: Square, bitboard: BitBoard) -> f
 impl fmt::Display for Analysis {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "FEN: {}", self.board,)?;
-        writeln!(f, "\nsteady:\n{}", self.steady.value.reverse_colors())?;
+        writeln!(f, "\nsteady (cnt: {}):\n", self.origins.counter())?;
+        write_bitboard(f, String::from("steady"), self.steady.value)?;
         writeln!(f, "\norigins (cnt: {}):\n", self.origins.counter())?;
         for square in *self.board.combined() {
-            write_bitboard(f, square, self.origins.value[square.to_index()])?;
+            write_bitboard(f, square.to_string(), self.origins.value[square.to_index()])?;
         }
         writeln!(f, "\ndestinies (cnt: {}):\n", self.destinies.counter())?;
         for square in ALL_ORIGINS {
-            write_bitboard(f, square, self.destinies.value[square.to_index()])?;
+            write_bitboard(
+                f,
+                square.to_string(),
+                self.destinies.value[square.to_index()],
+            )?;
         }
         writeln!(f, "\nreachable (cnt: {}):\n", self.reachable.counter())?;
         for square in ALL_ORIGINS {
-            write_bitboard(f, square, self.reachable.value[square.to_index()])?;
+            write_bitboard(
+                f,
+                square.to_string(),
+                self.reachable.value[square.to_index()],
+            )?;
         }
         writeln!(
             f,
@@ -627,9 +641,8 @@ impl fmt::Display for Analysis {
             for file in ALL_FILES {
                 let rank = color.to_my_backrank();
                 let square = Square::make_square(rank, file);
-                let reachable =
-                    self.reachable_from_origin.value[Color::White.to_index()][file.to_index()];
-                write_bitboard(f, square, reachable)?;
+                let reachable = self.reachable_from_origin.value[color.to_index()][file.to_index()];
+                write_bitboard(f, square.to_string(), reachable)?;
             }
         }
         writeln!(
@@ -638,20 +651,20 @@ impl fmt::Display for Analysis {
             self.reachable_from_promotion.counter()
         )?;
         for color in ALL_COLORS {
-            for piece in [Piece::Queen, Piece::Knight, Piece::Rook, Piece::Bishop] {
+            for piece in PROMOTION_PIECES {
                 writeln!(f, "\n {:?} {:?}:", color, piece)?;
                 for file in ALL_FILES {
                     let rank = color.to_their_backrank();
                     let square = Square::make_square(rank, file);
-                    let reachable = self.reachable_from_promotion.value[Color::White.to_index()]
+                    let reachable = self.reachable_from_promotion.value[color.to_index()]
                         [prom_index(piece)][file.to_index()];
-                    write_bitboard(f, square, reachable)?;
+                    write_bitboard(f, square.to_string(), reachable)?;
                 }
             }
         }
         writeln!(f, "\ntombs (cnt: {}):\n", self.tombs.counter())?;
         for square in ALL_ORIGINS {
-            write_bitboard(f, square, self.tombs.value[square.to_index()])?;
+            write_bitboard(f, square.to_string(), self.tombs.value[square.to_index()])?;
         }
         writeln!(
             f,
