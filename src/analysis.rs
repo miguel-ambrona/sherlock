@@ -2,8 +2,8 @@ use std::fmt;
 
 use chess::{
     get_bishop_rays, get_rook_rays, BitBoard, Board, Color, File, Piece, Square, ALL_COLORS,
-    ALL_FILES, ALL_PIECES, EMPTY, NUM_COLORS, NUM_FILES, NUM_PIECES, NUM_PROMOTION_PIECES,
-    NUM_SQUARES, PROMOTION_PIECES,
+    ALL_FILES, ALL_PIECES, ALL_SQUARES, EMPTY, NUM_COLORS, NUM_FILES, NUM_PIECES,
+    NUM_PROMOTION_PIECES, NUM_SQUARES, PROMOTION_PIECES,
 };
 
 use crate::{
@@ -110,6 +110,16 @@ pub struct Analysis {
     pub(crate) reachable_from_promotion:
         Counter<[[[BitBoard; NUM_FILES]; NUM_PROMOTION_PIECES]; NUM_COLORS]>,
 
+    /// The minimum number of captures necessary for a pawn to reach targets.
+    ///
+    /// `pawn_capture_distances[c.to_index()][f.to_index()][s.to_index()]`, for
+    /// `c : Color`, `f : File`, `s : Square`, is a lower bound on the number of
+    /// captures necessary for the pawn of color `c` that started on file `f` to
+    /// reach square `s` as a pawn.
+    ///
+    /// Unreachable squares store a value of 16 by default.
+    pub(crate) pawn_capture_distances: Counter<[[[u8; NUM_SQUARES]; NUM_FILES]; NUM_COLORS]>,
+
     /// The squares where opponent pieces have certainly been captured.
     ///
     /// For `s : Square`, `tombs[s.to_index()]` is a `BitBoard` encoding
@@ -150,6 +160,7 @@ impl Analysis {
             reachable_from_promotion: Counter::new(
                 [[[!EMPTY; NUM_FILES]; NUM_PROMOTION_PIECES]; NUM_COLORS],
             ),
+            pawn_capture_distances: Counter::new([[[16; NUM_SQUARES]; NUM_FILES]; NUM_COLORS]),
             tombs: Counter::new([EMPTY; NUM_SQUARES]),
             captures_bounds: Counter::new([(0, 15); NUM_SQUARES]),
             mobility: Counter::new([
@@ -659,6 +670,28 @@ impl fmt::Display for Analysis {
                     let reachable = self.reachable_from_promotion.value[color.to_index()]
                         [prom_index(piece)][file.to_index()];
                     write_bitboard(f, square.to_string(), reachable)?;
+                }
+            }
+        }
+        writeln!(
+            f,
+            "\npawn_capture_distances (cnt: {}):",
+            self.pawn_capture_distances.counter()
+        )?;
+        for color in ALL_COLORS {
+            for file in ALL_FILES {
+                let square = Square::make_square(color.to_second_rank(), file);
+                write!(f, "\n  {:?}{:?} ({}):", color, file, square)?;
+                for d in 1..=6 {
+                    write!(f, "\n  {}:", d)?;
+                    for target in ALL_SQUARES {
+                        if self.pawn_capture_distances.value[color.to_index()][file.to_index()]
+                            [target.to_index()]
+                            == d
+                        {
+                            write!(f, " {}", target)?;
+                        }
+                    }
                 }
             }
         }
