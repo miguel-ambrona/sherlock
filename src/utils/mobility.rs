@@ -123,6 +123,24 @@ impl MobilityGraph {
         node_map.get(&self.node(target)).copied()
     }
 
+    pub fn reachable_from_source(&self, source: Square) -> BitBoard {
+        let node_map = dijkstra(&self.graph, self.node(source), None, |e| *e.weight());
+        let mut reachable = EMPTY;
+        for key in node_map.keys() {
+            reachable |= BitBoard::from_square(ALL_SQUARES[key.index()]);
+        }
+        reachable
+    }
+
+    pub fn distances_from_source(&self, source: Square) -> Vec<(Square, u8)> {
+        let node_map = dijkstra(&self.graph, self.node(source), None, |e| *e.weight());
+        let mut distances = vec![];
+        for (key, bound) in node_map.iter() {
+            distances.push((ALL_SQUARES[key.index()], *bound as u8))
+        }
+        distances
+    }
+
     /// Returns a pair including:
     /// - a `BitBoard` with all the squares where a capture must have taken
     ///   place for going from `source` to `target` in this mobility graph,

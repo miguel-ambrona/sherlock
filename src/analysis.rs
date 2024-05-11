@@ -1,11 +1,15 @@
 use std::fmt;
 
 use chess::{
-    get_bishop_rays, get_rook_rays, BitBoard, Board, Color, Piece, Square, ALL_COLORS, ALL_PIECES,
-    EMPTY, NUM_COLORS, NUM_PIECES, NUM_SQUARES,
+    get_bishop_rays, get_rook_rays, BitBoard, Board, Color, File, Piece, Square, ALL_COLORS,
+    ALL_FILES, ALL_PIECES, ALL_SQUARES, EMPTY, NUM_COLORS, NUM_FILES, NUM_PIECES,
+    NUM_PROMOTION_PIECES, NUM_SQUARES, PROMOTION_PIECES,
 };
 
-use crate::{rules::ALL_ORIGINS, utils::MobilityGraph};
+use crate::{
+    rules::ALL_ORIGINS,
+    utils::{prom_index, MobilityGraph},
+};
 
 pub(crate) struct Counter<T> {
     pub(crate) value: T,
@@ -80,6 +84,42 @@ pub struct Analysis {
     /// the piece which started on `s` has definitely not reached square `t`.
     pub(crate) reachable: Counter<[BitBoard; NUM_SQUARES]>,
 
+    /// The squares that may have been reached by officers from their origin.
+    ///
+    /// `reachable_from_origin[c.to_index()][f.to_index()]`, for `c : Color` and
+    /// `f : File`, is a `BitBoard` encoding the squares that may have been
+    /// reached by the officer of color `c` that started the game on file `f`
+    /// (and their relative 1st rank). The officer type is implied by the file.
+    ///
+    /// The 0's in the corresponding `BitBoard` represent squares that are
+    /// definitely not reachable. The 1's are squares that have not yet been
+    /// proven to be unreachable.
+    pub(crate) reachable_from_origin: Counter<[[BitBoard; NUM_FILES]; NUM_COLORS]>,
+
+    /// The squares that may have been reached by a promoted piece.
+    ///
+    /// `reachable_from_promotion[c.to_index()][prom_index(p)][f.to_index()]`,
+    /// for `c : Color`, `p : Piece`, `f : File`,  is a `BitBoard`
+    /// encoding the squares that may have been reached by a piece of color
+    /// `c` that has promoted on file `f` (and their relative 8th rank) into
+    /// piece type `p`.
+    ///
+    /// The 0's in the corresponding `BitBoard` represent squares that are
+    /// definitely not reachable. The 1's are squares that have not yet been
+    /// proven to be unreachable.
+    pub(crate) reachable_from_promotion:
+        Counter<[[[BitBoard; NUM_FILES]; NUM_PROMOTION_PIECES]; NUM_COLORS]>,
+
+    /// The minimum number of captures necessary for a pawn to reach targets.
+    ///
+    /// `pawn_capture_distances[c.to_index()][f.to_index()][s.to_index()]`, for
+    /// `c : Color`, `f : File`, `s : Square`, is a lower bound on the number of
+    /// captures necessary for the pawn of color `c` that started on file `f` to
+    /// reach square `s` as a pawn.
+    ///
+    /// Unreachable squares store a value of 16 by default.
+    pub(crate) pawn_capture_distances: Counter<[[[u8; NUM_SQUARES]; NUM_FILES]; NUM_COLORS]>,
+
     /// The squares where opponent pieces have certainly been captured.
     ///
     /// For `s : Square`, `tombs[s.to_index()]` is a `BitBoard` encoding
@@ -116,6 +156,11 @@ impl Analysis {
             origins: Counter::new([!EMPTY; NUM_SQUARES]),
             destinies: Counter::new([!EMPTY; NUM_SQUARES]),
             reachable: Counter::new([!EMPTY; NUM_SQUARES]),
+            reachable_from_origin: Counter::new([[!EMPTY; NUM_FILES]; NUM_COLORS]),
+            reachable_from_promotion: Counter::new(
+                [[[!EMPTY; NUM_FILES]; NUM_PROMOTION_PIECES]; NUM_COLORS],
+            ),
+            pawn_capture_distances: Counter::new([[[16; NUM_SQUARES]; NUM_FILES]; NUM_COLORS]),
             tombs: Counter::new([EMPTY; NUM_SQUARES]),
             captures_bounds: Counter::new([(0, 15); NUM_SQUARES]),
             mobility: Counter::new([
@@ -380,6 +425,71 @@ impl Analysis {
         true
     }
 
+    /// Update the reachable squares of the officer of the given color that
+    /// started on the given file, with the given value. Returns a boolean
+    /// value indicating whether the update changed anything.
+    pub(crate) fn update_reachable_from_origin(
+        &mut self,
+        color: Color,
+        file: File,
+        value: BitBoard,
+    ) -> bool {
+        let reachable = self.reachable_from_origin.value[color.to_index()][file.to_index()];
+        let new_reachable = reachable & value;
+        if reachable == new_reachable {
+            return false;
+        }
+        self.reachable_from_origin.value[color.to_index()][file.to_index()] = new_reachable;
+        self.reachable_from_origin.counter += 1;
+        true
+    }
+
+    /// Update the reachable squares of a promoted piece of the given color and
+    /// piece type that promoted on the given file, with the given value.
+    /// Returns a boolean value indicating whether the update changed anything.
+    pub(crate) fn update_reachable_from_promotion(
+        &mut self,
+        color: Color,
+        piece: Piece,
+        file: File,
+        value: BitBoard,
+    ) -> bool {
+        let reachable = self.reachable_from_promotion.value[color.to_index()][prom_index(piece)]
+            [file.to_index()];
+        let new_reachable = reachable & value;
+        if reachable == new_reachable {
+            return false;
+        }
+        self.reachable_from_promotion.value[color.to_index()][prom_index(piece)][file.to_index()] =
+            new_reachable;
+        self.reachable_from_promotion.counter += 1;
+        true
+    }
+
+    /// Update the information on pawn capture distances for the pawn of the
+    /// given color that started on the given file, with the given distances.
+    /// Returns a boolean value indicating whether the update changed anything.
+    pub(crate) fn update_pawn_capture_distances(
+        &mut self,
+        color: Color,
+        file: File,
+        distances: &[(Square, u8)],
+    ) -> bool {
+        let mut progress = false;
+        let array = self.pawn_capture_distances.value[color.to_index()][file.to_index()];
+        for (target, distance) in distances {
+            if array[target.to_index()] > *distance {
+                progress = true;
+                self.pawn_capture_distances.value[color.to_index()][file.to_index()]
+                    [target.to_index()] = *distance;
+            }
+        }
+        if progress {
+            self.pawn_capture_distances.counter += 1;
+        }
+        progress
+    }
+
     /// Update the tombs of the piece that started on the given square, with the
     /// given value.
     /// Returns a boolean value indicating whether the update changed anything.
@@ -513,35 +623,110 @@ impl Analysis {
     }
 }
 
-fn write_array(
-    f: &mut fmt::Formatter,
-    name: &str,
-    array: &Counter<[BitBoard; NUM_SQUARES]>,
-    squares: BitBoard,
-) -> fmt::Result {
-    writeln!(f, "\n{} (cnt: {}):\n", name, array.counter())?;
-    for square in squares {
-        if array.value[square.to_index()] == !EMPTY {
-            writeln!(f, "  {}: ALL", square)?;
+fn write_bitboard(f: &mut fmt::Formatter, name: String, bitboard: BitBoard) -> fmt::Result {
+    if bitboard == !EMPTY {
+        writeln!(f, "  {}: ALL", name)?;
+    } else {
+        let (negated, bb) = if bitboard.popcnt() < 40 {
+            (" ", bitboard)
         } else {
-            write!(f, "  {}: [", square)?;
-            for element in array.value[square.to_index()] {
-                write!(f, "{},", element)?;
-            }
-            writeln!(f, "]")?;
+            ("!", !bitboard)
+        };
+        write!(f, "  {}: {}{{ ", name, negated)?;
+        for element in bb {
+            write!(f, "{} ", element)?;
         }
+        writeln!(f, "}}")?;
     }
     Ok(())
 }
 
 impl fmt::Display for Analysis {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "FEN: {}\n", self.board,)?;
-        writeln!(f, "steady:\n{}", self.steady.value.reverse_colors())?;
-        write_array(f, "origins", &self.origins, *self.board.combined())?;
-        write_array(f, "destinies", &self.destinies, ALL_ORIGINS)?;
-        write_array(f, "reachable", &self.reachable, ALL_ORIGINS)?;
-        write_array(f, "tombs", &self.tombs, ALL_ORIGINS)?;
+        writeln!(f, "FEN: {}", self.board,)?;
+        writeln!(f, "\nsteady (cnt: {}):\n", self.origins.counter())?;
+        write_bitboard(f, String::from("steady"), self.steady.value)?;
+        writeln!(f, "\norigins (cnt: {}):\n", self.origins.counter())?;
+        for square in *self.board.combined() {
+            write_bitboard(f, square.to_string(), self.origins.value[square.to_index()])?;
+        }
+        writeln!(f, "\ndestinies (cnt: {}):\n", self.destinies.counter())?;
+        for square in ALL_ORIGINS {
+            write_bitboard(
+                f,
+                square.to_string(),
+                self.destinies.value[square.to_index()],
+            )?;
+        }
+        writeln!(f, "\nreachable (cnt: {}):\n", self.reachable.counter())?;
+        for square in ALL_ORIGINS {
+            write_bitboard(
+                f,
+                square.to_string(),
+                self.reachable.value[square.to_index()],
+            )?;
+        }
+        writeln!(
+            f,
+            "\nreachable_from_origin (cnt: {}):",
+            self.reachable_from_origin.counter()
+        )?;
+        for color in ALL_COLORS {
+            writeln!(f, "\n {:?}:", color)?;
+            for file in ALL_FILES {
+                let rank = color.to_my_backrank();
+                let square = Square::make_square(rank, file);
+                let reachable = self.reachable_from_origin.value[color.to_index()][file.to_index()];
+                write_bitboard(f, square.to_string(), reachable)?;
+            }
+        }
+        writeln!(
+            f,
+            "\nreachable_from_promotion (cnt: {}):",
+            self.reachable_from_promotion.counter()
+        )?;
+        for color in ALL_COLORS {
+            for piece in PROMOTION_PIECES {
+                writeln!(f, "\n {:?} {:?}:", color, piece)?;
+                for file in ALL_FILES {
+                    let rank = color.to_their_backrank();
+                    let square = Square::make_square(rank, file);
+                    let reachable = self.reachable_from_promotion.value[color.to_index()]
+                        [prom_index(piece)][file.to_index()];
+                    write_bitboard(f, square.to_string(), reachable)?;
+                }
+            }
+        }
+        writeln!(
+            f,
+            "\npawn_capture_distances (cnt: {}):",
+            self.pawn_capture_distances.counter()
+        )?;
+        for color in ALL_COLORS {
+            for file in ALL_FILES {
+                let square = Square::make_square(color.to_second_rank(), file);
+                if self.is_steady(square) {
+                    continue;
+                }
+                write!(f, "\n  {:?} {:?}-pawn:", color, file)?;
+                for d in 1..=6 {
+                    write!(f, "\n    {}:", d)?;
+                    for target in ALL_SQUARES {
+                        if self.pawn_capture_distances.value[color.to_index()][file.to_index()]
+                            [target.to_index()]
+                            == d
+                        {
+                            write!(f, " {}", target)?;
+                        }
+                    }
+                }
+                writeln!(f)?;
+            }
+        }
+        writeln!(f, "\ntombs (cnt: {}):\n", self.tombs.counter())?;
+        for square in ALL_ORIGINS {
+            write_bitboard(f, square.to_string(), self.tombs.value[square.to_index()])?;
+        }
         writeln!(
             f,
             "\ncaptures bounds (cnt: {}):\n",

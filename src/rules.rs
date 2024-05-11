@@ -44,6 +44,9 @@ pub use steady_mobility::*;
 mod pawn_on_3rd_rank;
 pub use pawn_on_3rd_rank::*;
 
+mod mobility;
+pub use mobility::*;
+
 mod route_from_origins;
 pub use route_from_origins::*;
 
