@@ -1,8 +1,8 @@
 use std::fmt;
 
 use chess::{
-    get_bishop_rays, get_rook_rays, BitBoard, Board, Color, Piece, Square, ALL_COLORS, ALL_PIECES,
-    EMPTY, NUM_COLORS, NUM_PIECES, NUM_SQUARES,
+    get_bishop_rays, get_rank, get_rook_rays, BitBoard, Board, Color, Piece, Rank, Square,
+    ALL_COLORS, ALL_PIECES, EMPTY, NUM_COLORS, NUM_FILES, NUM_PIECES, NUM_SQUARES,
 };
 
 use crate::{rules::ALL_ORIGINS, utils::MobilityGraph};
@@ -80,6 +80,18 @@ pub struct Analysis {
     /// the piece which started on `s` has definitely not reached square `t`.
     pub(crate) reachable: Counter<[BitBoard; NUM_SQUARES]>,
 
+    /// The squares that may have been reached by officers from their origin.
+    ///
+    /// `reachable_from_origin[c.to_index()][f.to_index()]`, for `c : Color` and
+    /// `f : File`, is a `BitBoard` encoding the squares that may have been
+    /// reached by the officer of color `c` that started the game on file `f`
+    /// (and their relative 1st rank). The officer type is implied by the file.
+    ///
+    /// The 0's in the corresponding `BitBoard` represent squares that are
+    /// definitely not reachable. The 1's are squares that have not yet been
+    /// proven to be unreachable.
+    pub(crate) reachable_from_origin: Counter<[[BitBoard; NUM_FILES]; NUM_COLORS]>,
+
     /// The squares where opponent pieces have certainly been captured.
     ///
     /// For `s : Square`, `tombs[s.to_index()]` is a `BitBoard` encoding
@@ -116,6 +128,7 @@ impl Analysis {
             origins: Counter::new([!EMPTY; NUM_SQUARES]),
             destinies: Counter::new([!EMPTY; NUM_SQUARES]),
             reachable: Counter::new([!EMPTY; NUM_SQUARES]),
+            reachable_from_origin: Counter::new([[!EMPTY; NUM_FILES]; NUM_COLORS]),
             tombs: Counter::new([EMPTY; NUM_SQUARES]),
             captures_bounds: Counter::new([(0, 15); NUM_SQUARES]),
             mobility: Counter::new([
@@ -513,35 +526,55 @@ impl Analysis {
     }
 }
 
-fn write_array(
-    f: &mut fmt::Formatter,
-    name: &str,
-    array: &Counter<[BitBoard; NUM_SQUARES]>,
-    squares: BitBoard,
-) -> fmt::Result {
-    writeln!(f, "\n{} (cnt: {}):\n", name, array.counter())?;
-    for square in squares {
-        if array.value[square.to_index()] == !EMPTY {
-            writeln!(f, "  {}: ALL", square)?;
-        } else {
-            write!(f, "  {}: [", square)?;
-            for element in array.value[square.to_index()] {
-                write!(f, "{},", element)?;
-            }
-            writeln!(f, "]")?;
+fn write_bitboard(f: &mut fmt::Formatter, name: Square, bitboard: BitBoard) -> fmt::Result {
+    if bitboard == !EMPTY {
+        writeln!(f, "  {}: ALL", name)?;
+    } else {
+        write!(f, "  {}: {{ ", name)?;
+        for element in bitboard {
+            write!(f, "{} ", element)?;
         }
+        writeln!(f, "}}")?;
     }
     Ok(())
 }
 
 impl fmt::Display for Analysis {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "FEN: {}\n", self.board,)?;
-        writeln!(f, "steady:\n{}", self.steady.value.reverse_colors())?;
-        write_array(f, "origins", &self.origins, *self.board.combined())?;
-        write_array(f, "destinies", &self.destinies, ALL_ORIGINS)?;
-        write_array(f, "reachable", &self.reachable, ALL_ORIGINS)?;
-        write_array(f, "tombs", &self.tombs, ALL_ORIGINS)?;
+        writeln!(f, "FEN: {}", self.board,)?;
+        writeln!(f, "\nsteady:\n{}", self.steady.value.reverse_colors())?;
+        writeln!(f, "\norigins (cnt: {}):\n", self.origins.counter())?;
+        for square in *self.board.combined() {
+            write_bitboard(f, square, self.origins.value[square.to_index()])?;
+        }
+        writeln!(f, "\ndestinies (cnt: {}):\n", self.destinies.counter())?;
+        for square in ALL_ORIGINS {
+            write_bitboard(f, square, self.destinies.value[square.to_index()])?;
+        }
+        writeln!(f, "\nreachable (cnt: {}):\n", self.reachable.counter())?;
+        for square in ALL_ORIGINS {
+            write_bitboard(f, square, self.reachable.value[square.to_index()])?;
+        }
+        writeln!(
+            f,
+            "\nreachable_from_origin (cnt: {}):\n",
+            self.reachable_from_origin.counter()
+        )?;
+        for square in get_rank(Rank::First) {
+            let file_idx = square.get_file().to_index();
+            let reachable = self.reachable_from_origin.value[Color::White.to_index()][file_idx];
+            write_bitboard(f, square, reachable)?;
+        }
+        writeln!(f)?;
+        for square in get_rank(Rank::Eighth) {
+            let file_idx = square.get_file().to_index();
+            let reachable = self.reachable_from_origin.value[Color::Black.to_index()][file_idx];
+            write_bitboard(f, square, reachable)?;
+        }
+        writeln!(f, "\ntombs (cnt: {}):\n", self.tombs.counter())?;
+        for square in ALL_ORIGINS {
+            write_bitboard(f, square, self.tombs.value[square.to_index()])?;
+        }
         writeln!(
             f,
             "\ncaptures bounds (cnt: {}):\n",
