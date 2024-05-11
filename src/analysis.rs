@@ -1,7 +1,7 @@
 use std::fmt;
 
 use chess::{
-    get_bishop_rays, get_rank, get_rook_rays, BitBoard, Board, Color, Piece, Rank, Square,
+    get_bishop_rays, get_rank, get_rook_rays, BitBoard, Board, Color, File, Piece, Rank, Square,
     ALL_COLORS, ALL_PIECES, EMPTY, NUM_COLORS, NUM_FILES, NUM_PIECES, NUM_SQUARES,
 };
 
@@ -390,6 +390,25 @@ impl Analysis {
         }
         self.reachable.value[square.to_index()] = new_reachable;
         self.reachable.counter += 1;
+        true
+    }
+
+    /// Update the reachable squares of the officer that started on the given
+    /// color and the given file, with the given value.
+    /// Returns a boolean value indicating whether the update changed anything.
+    pub(crate) fn update_reachable_from_origin(
+        &mut self,
+        color: Color,
+        file: File,
+        value: BitBoard,
+    ) -> bool {
+        let reachable = self.reachable_from_origin.value[color.to_index()][file.to_index()];
+        let new_reachable = reachable & value;
+        if reachable == new_reachable {
+            return false;
+        }
+        self.reachable_from_origin.value[color.to_index()][file.to_index()] = new_reachable;
+        self.reachable_from_origin.counter += 1;
         true
     }
 
