@@ -53,6 +53,16 @@ pub fn square_color(square: Square) -> Color {
     }
 }
 
+pub fn prom_index(piece: Piece) -> usize {
+    match piece {
+        Piece::Queen => 0,
+        Piece::Knight => 1,
+        Piece::Rook => 2,
+        Piece::Bishop => 3,
+        _ => panic!("King or Pawn are not valid promotion types"),
+    }
+}
+
 /// A `BitBoard` with the squares from which a piece of the given `Piece` type
 /// and `Color` can move to from the given `Square` on an empty board.
 #[inline]
