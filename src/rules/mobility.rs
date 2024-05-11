@@ -3,8 +3,9 @@
 //! Based on the mobility graph, updates the information about:
 //!  - reachable_from_origin
 //!  - reachable_from_promotion
+//!  - pawn_capture_distances
 
-use chess::{Board, Square, ALL_COLORS, ALL_FILES, PROMOTION_PIECES};
+use chess::{Board, Piece, Square, ALL_COLORS, ALL_FILES, PROMOTION_PIECES};
 
 use super::{Analysis, Rule};
 
@@ -54,6 +55,17 @@ impl Rule for MobilityRule {
                     progress |=
                         analysis.update_reachable_from_promotion(color, piece, file, reachable)
                 }
+            }
+        }
+
+        // update pawn_capture_distances
+        for color in ALL_COLORS {
+            let rank = color.to_second_rank();
+            for file in ALL_FILES {
+                let square = Square::make_square(rank, file);
+                let distances = analysis.mobility.value[color.to_index()][Piece::Pawn.to_index()]
+                    .distances_from_source(square);
+                progress |= analysis.update_pawn_capture_distances(color, file, &distances);
             }
         }
 

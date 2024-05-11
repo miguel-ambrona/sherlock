@@ -466,6 +466,30 @@ impl Analysis {
         true
     }
 
+    /// Update the information on pawn capture distances for the pawn of the
+    /// given color that started on the given file, with the given distances.
+    /// Returns a boolean value indicating whether the update changed anything.
+    pub(crate) fn update_pawn_capture_distances(
+        &mut self,
+        color: Color,
+        file: File,
+        distances: &[(Square, u8)],
+    ) -> bool {
+        let mut progress = false;
+        let array = self.pawn_capture_distances.value[color.to_index()][file.to_index()];
+        for (target, distance) in distances {
+            if array[target.to_index()] > *distance {
+                progress = true;
+                self.pawn_capture_distances.value[color.to_index()][file.to_index()]
+                    [target.to_index()] = *distance;
+            }
+        }
+        if progress {
+            self.pawn_capture_distances.counter += 1;
+        }
+        progress
+    }
+
     /// Update the tombs of the piece that started on the given square, with the
     /// given value.
     /// Returns a boolean value indicating whether the update changed anything.
@@ -681,9 +705,12 @@ impl fmt::Display for Analysis {
         for color in ALL_COLORS {
             for file in ALL_FILES {
                 let square = Square::make_square(color.to_second_rank(), file);
-                write!(f, "\n  {:?}{:?} ({}):", color, file, square)?;
+                if self.is_steady(square) {
+                    continue;
+                }
+                write!(f, "\n  {:?} {:?}-pawn:", color, file)?;
                 for d in 1..=6 {
-                    write!(f, "\n  {}:", d)?;
+                    write!(f, "\n    {}:", d)?;
                     for target in ALL_SQUARES {
                         if self.pawn_capture_distances.value[color.to_index()][file.to_index()]
                             [target.to_index()]
@@ -693,6 +720,7 @@ impl fmt::Display for Analysis {
                         }
                     }
                 }
+                writeln!(f)?;
             }
         }
         writeln!(f, "\ntombs (cnt: {}):\n", self.tombs.counter())?;
