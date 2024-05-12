@@ -95,8 +95,7 @@ pub fn distance_to_target(
         return distance;
     }
 
-    if BitBoard::from_square(target)
-        & analysis.reachable_from_origin.value[color.to_index()][origin.get_file().to_index()]
+    if BitBoard::from_square(target) & analysis.reachable_from_origin(color, origin.get_file())
         != EMPTY
     {
         0

@@ -90,8 +90,7 @@ pub fn distance_from_origin(
         analysis.pawn_capture_distances.value[color.to_index()][origin.get_file().to_index()]
             [target.to_index()]
     } else if (BitBoard::from_square(origin) & get_rank(color.to_my_backrank())) != EMPTY {
-        if BitBoard::from_square(target)
-            & analysis.reachable_from_origin.value[color.to_index()][origin.get_file().to_index()]
+        if BitBoard::from_square(target) & analysis.reachable_from_origin(color, origin.get_file())
             != EMPTY
         {
             0

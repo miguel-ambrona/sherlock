@@ -187,6 +187,12 @@ impl Analysis {
         self.reachable.value[square.to_index()]
     }
 
+    /// The squares that may have been reached by the officer of the given color
+    /// that started the game on the given file.
+    pub(crate) fn reachable_from_origin(&self, color: Color, file: File) -> BitBoard {
+        self.reachable_from_origin.value[color.to_index()][file.to_index()]
+    }
+
     /// The known lower bound on the number of captures performed by the piece
     /// that started the game on the given square.
     #[inline]
@@ -289,7 +295,7 @@ impl Analysis {
         file: File,
         value: BitBoard,
     ) -> bool {
-        let reachable = self.reachable_from_origin.value[color.to_index()][file.to_index()];
+        let reachable = self.reachable_from_origin(color, file);
         let new_reachable = reachable & value;
         if reachable == new_reachable {
             return false;
@@ -551,7 +557,7 @@ impl fmt::Display for Analysis {
             for file in ALL_FILES {
                 let rank = color.to_my_backrank();
                 let square = Square::make_square(rank, file);
-                let reachable = self.reachable_from_origin.value[color.to_index()][file.to_index()];
+                let reachable = self.reachable_from_origin(color, file);
                 write_bitboard(f, square.to_string(), reachable)?;
             }
         }
