@@ -10,7 +10,7 @@ use std::cmp::min;
 use chess::{get_rank, BitBoard, Color, Piece, Rank, Square, EMPTY};
 
 use super::Rule;
-use crate::{analysis::Analysis, utils::prom_index};
+use crate::analysis::Analysis;
 
 #[derive(Debug)]
 pub struct TombsRule {
@@ -145,8 +145,7 @@ pub fn tombs_to_target(
                 [origin.get_file().to_index()][promoting_square.to_index()];
             for piece in candidate_promotion_pieces.clone() {
                 if BitBoard::from_square(target)
-                    & analysis.reachable_from_promotion.value[color.to_index()][prom_index(piece)]
-                        [promoting_square.get_file().to_index()]
+                    & analysis.reachable_from_promotion(color, piece, promoting_square.get_file())
                     == EMPTY
                 {
                     continue;
