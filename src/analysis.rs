@@ -120,6 +120,14 @@ pub struct Analysis {
     /// Unreachable squares store a value of 16 by default.
     pub(crate) pawn_capture_distances: Counter<[[[u8; NUM_SQUARES]; NUM_FILES]; NUM_COLORS]>,
 
+    /// The squares where a pawn must have captured in order to reach a target.
+    ///
+    /// `pawn_forced_captures[c.to_index()][f.to_index()][s.to_index()]`, for
+    /// `c : Color`, `f : File`, `s : Square`, is a `BitBoard` encoding the squares
+    /// where the pawn of color `c` that started on file `f` must have captured to
+    /// reach square `s` as a pawn.
+    pub(crate) pawn_forced_captures: Counter<[[[BitBoard; NUM_SQUARES]; NUM_FILES]; NUM_COLORS]>,
+
     /// The squares where opponent pieces have certainly been captured.
     ///
     /// For `s : Square`, `tombs[s.to_index()]` is a `BitBoard` encoding
@@ -160,7 +168,8 @@ impl Analysis {
             reachable_from_promotion: Counter::new(
                 [[[!EMPTY; NUM_FILES]; NUM_PROMOTION_PIECES]; NUM_COLORS],
             ),
-            pawn_capture_distances: Counter::new([[[16; NUM_SQUARES]; NUM_FILES]; NUM_COLORS]),
+            pawn_capture_distances: Counter::new([[[0; NUM_SQUARES]; NUM_FILES]; NUM_COLORS]),
+            pawn_forced_captures: Counter::new([[[EMPTY; NUM_SQUARES]; NUM_FILES]; NUM_COLORS]),
             tombs: Counter::new([EMPTY; NUM_SQUARES]),
             captures_bounds: Counter::new([(0, 15); NUM_SQUARES]),
             mobility: Counter::new([
@@ -292,7 +301,7 @@ impl Analysis {
     /// <details>
     /// <summary>Visualize this example's position</summary>
     ///
-    /// ![FEN](https://backscattering.de/web-boardimage/board.svg?fen=r1b1kb1r/pp1ppppp/2p5/8/8/2B5/PP1PPPPP/RN1QKBNR&colors=lichess-blue&arrows=Gc7&squares=e4)
+    /// ![FEN](https://backscattering.de/web-boardimage/board.svg?fen=r1b1kb1r/pp1ppppp/2p5/8/8/2B5/PP1PPPPP/RN1QKBNR&colors=lichess-blue&arrows=Gc7,Gb6c7,Gd6c7&squares=e4)
     ///
     /// </details>
     ///
@@ -473,21 +482,45 @@ impl Analysis {
         &mut self,
         color: Color,
         file: File,
-        distances: &[(Square, u8)],
+        distances: &[u8; NUM_SQUARES],
     ) -> bool {
         let mut progress = false;
         let array = self.pawn_capture_distances.value[color.to_index()][file.to_index()];
-        for (target, distance) in distances {
-            if array[target.to_index()] > *distance {
+        for target in ALL_SQUARES {
+            let distance = distances[target.to_index()];
+            if array[target.to_index()] < distance {
                 progress = true;
                 self.pawn_capture_distances.value[color.to_index()][file.to_index()]
-                    [target.to_index()] = *distance;
+                    [target.to_index()] = distance;
             }
         }
         if progress {
             self.pawn_capture_distances.counter += 1;
         }
         progress
+    }
+
+    /// Update the information on pawn forced captures for the pawn of the
+    /// given color that started on the given file, for going to the given
+    /// target, with the given value.
+    /// Returns a boolean value indicating whether the update changed anything.
+    pub(crate) fn update_pawn_forced_captures(
+        &mut self,
+        color: Color,
+        file: File,
+        target: Square,
+        value: BitBoard,
+    ) -> bool {
+        let forced =
+            self.pawn_forced_captures.value[color.to_index()][file.to_index()][target.to_index()];
+        let new_forced = forced | value;
+        if forced == new_forced {
+            return false;
+        }
+        self.pawn_forced_captures.value[color.to_index()][file.to_index()][target.to_index()] =
+            new_forced;
+        self.pawn_forced_captures.counter += 1;
+        true
     }
 
     /// Update the tombs of the piece that started on the given square, with the
@@ -709,7 +742,7 @@ impl fmt::Display for Analysis {
                     continue;
                 }
                 write!(f, "\n  {:?} {:?}-pawn:", color, file)?;
-                for d in 1..=6 {
+                for d in 0..=6 {
                     write!(f, "\n    {}:", d)?;
                     for target in ALL_SQUARES {
                         if self.pawn_capture_distances.value[color.to_index()][file.to_index()]
@@ -723,6 +756,11 @@ impl fmt::Display for Analysis {
                 writeln!(f)?;
             }
         }
+        writeln!(
+            f,
+            "\npawn_forced_captures (cnt: {}):",
+            self.pawn_forced_captures.counter()
+        )?;
         writeln!(f, "\ntombs (cnt: {}):\n", self.tombs.counter())?;
         for square in ALL_ORIGINS {
             write_bitboard(f, square.to_string(), self.tombs.value[square.to_index()])?;
