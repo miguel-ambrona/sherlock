@@ -60,6 +60,9 @@ impl Rule for TombsRule {
             let mut min_distance = 16;
 
             for destiny in analysis.destinies(origin) {
+                // TODO: This condition could be more general and instead be : !missing(origin)
+                // Change get_tombs doc example to a Queen on C3 instead of a Bishop when
+                // "missing" is supported.
                 let final_piece = if analysis.origins(destiny) == BitBoard::from_square(origin) {
                     analysis.board.piece_on(destiny)
                 } else {
@@ -129,7 +132,7 @@ pub fn tombs_to_target(
             None => vec![Piece::Knight, Piece::Queen, Piece::Rook, Piece::Bishop],
             Some(piece) => vec![piece],
         };
-        for promoting_square in get_rank(color.to_their_backrank()) {
+        for promoting_square in get_rank(color.to_their_backrank()) & !analysis.steady.value {
             if tombs == EMPTY {
                 break;
             }
