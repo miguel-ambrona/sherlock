@@ -64,71 +64,60 @@ mod tests {
     use chess::{get_rank, Board, Color::*, Piece::*, Rank};
 
     use super::*;
-    use crate::utils::*;
+    use crate::{
+        rules::{distance_to_target, MobilityRule, OriginsRule},
+        utils::*,
+    };
 
     #[test]
     fn test_steady_pieces() {
         let mut analysis = Analysis::new(&Board::default());
-        let steady_mobility = SteadyMobilityRule::new();
-
-        steady_mobility.apply(&mut analysis);
+        OriginsRule::new().apply(&mut analysis);
+        MobilityRule::new().apply(&mut analysis);
+        SteadyMobilityRule::new().apply(&mut analysis);
 
         // any square should be reachable from H1 for a white rook
-        assert_eq!(
-            distance_to_target(&analysis.mobility.value, H1, H8, Rook, White),
-            Some(0)
-        );
+        assert_eq!(distance_to_target(&analysis, H1, H8, Rook, White), 0);
 
         // learn that H7 is steady
         analysis.update_steady(bitboard_of_squares(&[H7]));
-        steady_mobility.apply(&mut analysis);
+        SteadyMobilityRule::new().apply(&mut analysis);
+        MobilityRule::new().apply(&mut analysis);
 
         // H8 should still be reachable, not directly, but reachable
-        assert_eq!(
-            distance_to_target(&analysis.mobility.value, H1, H8, Rook, White),
-            Some(0)
-        );
+        assert_eq!(distance_to_target(&analysis, H1, H8, Rook, White), 0);
 
         // not learn that the whole 7th rank is steady
         analysis.update_steady(get_rank(Rank::Seventh));
-        steady_mobility.apply(&mut analysis);
+        SteadyMobilityRule::new().apply(&mut analysis);
+        MobilityRule::new().apply(&mut analysis);
 
         // H8 should no longer be reachable
-        assert_eq!(
-            distance_to_target(&analysis.mobility.value, H1, H8, Rook, White),
-            None
-        );
+        assert_eq!(distance_to_target(&analysis, H1, H8, Rook, White), 16);
     }
 
     #[test]
     fn test_steady_king() {
         let mut analysis = Analysis::new(&Board::default());
-        let steady_mobility = SteadyMobilityRule::new();
+        OriginsRule::new().apply(&mut analysis);
 
         // learn that the black king is steady
         analysis.update_steady(bitboard_of_squares(&[E8]));
-        steady_mobility.apply(&mut analysis);
+        SteadyMobilityRule::new().apply(&mut analysis);
+        MobilityRule::new().apply(&mut analysis);
 
         // make sure a white pawn can still go from E7 to F8
-        assert_eq!(
-            distance_to_target(&analysis.mobility.value, E7, F8, Pawn, White),
-            Some(1)
-        );
+        assert!(analysis.mobility.value[White.to_index()][Pawn.to_index()].exists_edge(E7, F8));
 
         // but no white pawn can go from D7 to C8
-        assert_eq!(
-            distance_to_target(&analysis.mobility.value, D7, C8, Pawn, White),
-            None
-        );
+        assert!(!analysis.mobility.value[White.to_index()][Pawn.to_index()].exists_edge(D7, C8));
 
         // and a white knight can move to F6, but not from F6
-        assert_eq!(
-            distance_to_target(&analysis.mobility.value, G1, F6, Knight, White),
-            Some(0)
-        );
-        assert_eq!(
-            distance_to_target(&analysis.mobility.value, F6, G1, Knight, White),
-            None
-        );
+        assert!(analysis.mobility.value[White.to_index()][Knight.to_index()].exists_edge(G4, F6));
+        assert!(!analysis.mobility.value[White.to_index()][Knight.to_index()].exists_edge(F6, G4));
+
+        // black knights can do both
+        assert!(analysis.mobility.value[Black.to_index()][Knight.to_index()].exists_edge(G4, F6));
+        assert!(analysis.mobility.value[Black.to_index()][Knight.to_index()].exists_edge(F6, G4));
     }
 }

@@ -1,8 +1,8 @@
 use std::fmt;
 
 use chess::{
-    get_bishop_rays, get_rook_rays, BitBoard, Board, Color, File, Piece, Square, ALL_COLORS,
-    ALL_FILES, ALL_PIECES, ALL_SQUARES, EMPTY, NUM_COLORS, NUM_FILES, NUM_PIECES,
+    get_bishop_rays, get_rank, get_rook_rays, BitBoard, Board, Color, File, Piece, Square,
+    ALL_COLORS, ALL_FILES, ALL_PIECES, ALL_SQUARES, EMPTY, NUM_COLORS, NUM_FILES, NUM_PIECES,
     NUM_PROMOTION_PIECES, NUM_SQUARES, PROMOTION_PIECES,
 };
 
@@ -120,6 +120,14 @@ pub struct Analysis {
     /// Unreachable squares store a value of 16 by default.
     pub(crate) pawn_capture_distances: Counter<[[[u8; NUM_SQUARES]; NUM_FILES]; NUM_COLORS]>,
 
+    /// The squares where a pawn must have captured in order to reach a target.
+    ///
+    /// `pawn_forced_captures[c.to_index()][f.to_index()][s.to_index()]`, for
+    /// `c : Color`, `f : File`, `s : Square`, is a `BitBoard` encoding the
+    /// squares where the pawn of color `c` that started on file `f` must
+    /// have captured to reach square `s` as a pawn.
+    pub(crate) pawn_forced_captures: Counter<[[[BitBoard; NUM_SQUARES]; NUM_FILES]; NUM_COLORS]>,
+
     /// The squares where opponent pieces have certainly been captured.
     ///
     /// For `s : Square`, `tombs[s.to_index()]` is a `BitBoard` encoding
@@ -160,7 +168,8 @@ impl Analysis {
             reachable_from_promotion: Counter::new(
                 [[[!EMPTY; NUM_FILES]; NUM_PROMOTION_PIECES]; NUM_COLORS],
             ),
-            pawn_capture_distances: Counter::new([[[16; NUM_SQUARES]; NUM_FILES]; NUM_COLORS]),
+            pawn_capture_distances: Counter::new([[[0; NUM_SQUARES]; NUM_FILES]; NUM_COLORS]),
+            pawn_forced_captures: Counter::new([[[EMPTY; NUM_SQUARES]; NUM_FILES]; NUM_COLORS]),
             tombs: Counter::new([EMPTY; NUM_SQUARES]),
             captures_bounds: Counter::new([(0, 15); NUM_SQUARES]),
             mobility: Counter::new([
@@ -171,178 +180,59 @@ impl Analysis {
         }
     }
 
-    /// Tells whether the piece on the given square was classified as steady
-    /// (it has never moved and is still on their starting square).
-    ///
-    /// <details>
-    /// <summary>Visualize this example's position</summary>
-    ///
-    /// ![FEN](https://backscattering.de/web-boardimage/board.svg?fen=2bqkb2/1ppppp2/8/8/8/8/1PPPPPP1/2BQKB2&colors=lichess-blue&arrows=Gd1,Rd8)
-    ///
-    /// </details>
-    ///
-    /// ```
-    /// use std::str::FromStr;
-    ///
-    /// use chess::{Board, Square};
-    /// use sherlock::analyze;
-    ///
-    /// let board =
-    ///     Board::from_str("2bqkb2/1ppppp2/8/8/8/8/1PPPPPP1/2BQKB2 w - -").expect("Valid Position");
-    /// let analysis = analyze(&board);
-    ///
-    /// // The white queen cannot possibly have moved, unlike the black queen
-    /// assert_eq!(analysis.is_steady(Square::D1), true);
-    /// assert_eq!(analysis.is_steady(Square::D8), false);
-    /// ```
-    #[inline]
-    pub fn is_steady(&self, square: Square) -> bool {
-        BitBoard::from_square(square) & self.steady.value != EMPTY
-    }
-
-    /// The candidate origins of the piece that is on the given square in the
-    /// analyzed board.
-    ///
-    /// <details>
-    /// <summary>Visualize this example's position</summary>
-    ///
-    /// ![FEN](https://backscattering.de/web-boardimage/board.svg?fen=r1bqkbnr/p1pppppp/1p6/R7/4N3/8/1PPPP1PP/2BQKB1R&colors=lichess-blue&arrows=Gb1e4,Gg1e4,Ga2e4,Ba1a5&squares=h4)
-    ///
-    /// </details>
-    ///
-    /// ```
-    /// use std::str::FromStr;
-    ///
-    /// use chess::{BitBoard, Board, Square, EMPTY};
-    /// use sherlock::analyze;
-    ///
-    /// let board = Board::from_str("r1bqkbnr/p1pppppp/1p6/R7/4N3/8/1PPPP1PP/2BQKB1R w - -")
-    ///     .expect("Valid Position");
-    /// let analysis = analyze(&board);
-    ///
-    /// // The piece on E4 (a white knight) may have started the game on B1 or G1, but
-    /// // it can also be the A2-pawn promoted (not the F2 pawn, who could not promote)
-    /// assert_eq!(
-    ///     analysis.origins(Square::E4),
-    ///     BitBoard::from_square(Square::B1)
-    ///         | BitBoard::from_square(Square::G1)
-    ///         | BitBoard::from_square(Square::A2)
-    /// );
-    ///
-    /// // The rook on A5 has definitely started the game on A1 (it cannot be the A2-pawn
-    /// // promoted because it cannot have crossed the black pawn wall after promotion)
-    /// assert_eq!(
-    ///     analysis.origins(Square::A5),
-    ///     BitBoard::from_square(Square::A1)
-    /// );
-    ///
-    /// // This function should not be queried on an empty square, but if you insist...
-    /// assert_eq!(analysis.origins(Square::H4), !EMPTY);
-    /// ```
-    #[inline]
-    pub fn origins(&self, square: Square) -> BitBoard {
-        self.origins.value[square.to_index()]
-    }
-
-    /// The candidate destinies of the piece that started on the given square.
-    ///
-    /// <details>
-    /// <summary>Visualize this example's position</summary>
-    ///
-    /// ![FEN](https://backscattering.de/web-boardimage/board.svg?fen=r2qkb1r/ppp1pppp/8/7n/b2P4/8/PPPPP1PP/RNBQKBNR&colors=lichess-blue&arrows=Gg8h5,Gg8e3,Bd7d4)
-    ///
-    /// </details>
-    ///
-    /// ```
-    /// use std::str::FromStr;
-    ///
-    /// use chess::{BitBoard, Board, Square, EMPTY};
-    /// use sherlock::analyze;
-    ///
-    /// let board = Board::from_str("r2qkb1r/ppp1pppp/8/7n/b2P4/8/PPPPP1PP/RNBQKBNR b KQkq -")
-    ///     .expect("Valid Position");
-    /// let analysis = analyze(&board);
-    ///
-    /// // The white pawn on D4 must come from F2 (capturing on E3 and D4)
-    /// assert_eq!(
-    ///     analysis.destinies(Square::F2),
-    ///     BitBoard::from_square(Square::D4)
-    /// );
-    ///
-    /// // On E3 it must have captured the missing black knight, so the knight that started on G8
-    /// // was captured on E3 or is standing on H5 (in the case, the other was captured on E3)
-    /// // assert_eq!(
-    /// //    analysis.destinies(Square::G8),
-    /// //    BitBoard::from_square(Square::E3) | BitBoard::from_square(Square::H5)
-    /// // );
-    ///
-    /// // On the other hand, the pawn that started on D7 must have been captured on D4
-    /// // assert_eq!(
-    /// //    analysis.destinies(Square::D7),
-    /// //    BitBoard::from_square(Square::D4)
-    /// //);
-    /// ```
-    #[inline]
-    pub fn destinies(&self, square: Square) -> BitBoard {
-        self.destinies.value[square.to_index()]
-    }
-
-    /// The candidate destinies of the piece that started on the given square.
-    ///
-    /// <details>
-    /// <summary>Visualize this example's position</summary>
-    ///
-    /// ![FEN](https://backscattering.de/web-boardimage/board.svg?fen=r1b1kb1r/pp1ppppp/2p5/8/8/2B5/PP1PPPPP/RN1QKBNR&colors=lichess-blue&arrows=Gc7&squares=e4)
-    ///
-    /// </details>
-    ///
-    /// ```
-    /// use std::str::FromStr;
-    ///
-    /// use chess::{BitBoard, Board, Square, EMPTY};
-    /// use sherlock::{analyze, Error};
-    ///
-    /// let board = Board::from_str("r1b1kb1r/pp1ppppp/2p5/8/8/2B5/PP1PPPPP/RN1QKBNR w KQkq -")
-    ///     .expect("Valid Position");
-    /// let analysis = analyze(&board);
-    ///
-    /// // The C2-pawn has certainly promoted (it is now the bishop on C3), in order to do so
-    /// // it must have captured on C7 (two other captures took place, but their place is uncertain)
-    /// assert_eq!(
-    ///     analysis.get_tombs(Square::C2),
-    ///     Ok(BitBoard::from_square(Square::C7))
-    /// );
-    ///
-    /// // if we provide a square not in the 1st, 2nd, 7th or 8th rank
-    /// assert_eq!(analysis.get_tombs(Square::E4), Err(Error::NotOriginSquare));
-    /// ```
-    #[inline]
-    pub fn get_tombs(&self, square: Square) -> Result<BitBoard, Error> {
-        if BitBoard::from_square(square) & ALL_ORIGINS == EMPTY {
-            Err(Error::NotOriginSquare)
-        } else {
-            Ok(self.tombs.value[square.to_index()])
-        }
-    }
-
     /// The squares that may have been reached by the piece that started on the
     /// given square.
     #[inline]
-    pub fn reachable(&self, square: Square) -> BitBoard {
+    pub(crate) fn reachable(&self, square: Square) -> BitBoard {
         self.reachable.value[square.to_index()]
+    }
+
+    /// The squares that may have been reached by the officer of the given color
+    /// that started the game on the given file.
+    pub(crate) fn reachable_from_origin(&self, color: Color, file: File) -> BitBoard {
+        self.reachable_from_origin.value[color.to_index()][file.to_index()]
+    }
+
+    /// The squares that may have been reached by the piece of the given type
+    /// and color that has just promoted on the given file.
+    pub(crate) fn reachable_from_promotion(
+        &self,
+        color: Color,
+        piece: Piece,
+        file: File,
+    ) -> BitBoard {
+        self.reachable_from_promotion.value[color.to_index()][prom_index(piece)][file.to_index()]
+    }
+
+    /// The minimum number of captures necessary for the pawn of the given color
+    /// and the given file to reach the given target as a pawn, from its origin
+    /// square.
+    pub(crate) fn pawn_capture_distances(&self, color: Color, file: File, target: Square) -> u8 {
+        self.pawn_capture_distances.value[color.to_index()][file.to_index()][target.to_index()]
+    }
+
+    /// The squares where the pawn of the given color that started on the given
+    /// file must have captured in order to reach the given target.
+    pub(crate) fn pawn_forced_captures(
+        &self,
+        color: Color,
+        file: File,
+        target: Square,
+    ) -> BitBoard {
+        self.pawn_forced_captures.value[color.to_index()][file.to_index()][target.to_index()]
     }
 
     /// The known lower bound on the number of captures performed by the piece
     /// that started the game on the given square.
     #[inline]
-    pub fn nb_captures_lower_bound(&self, square: Square) -> i32 {
+    pub(crate) fn nb_captures_lower_bound(&self, square: Square) -> i32 {
         self.captures_bounds.value[square.to_index()].0
     }
 
     /// The known upper bound on the number of captures performed by the piece
     /// that started the game on the given square.
     #[inline]
-    pub fn nb_captures_upper_bound(&self, square: Square) -> i32 {
+    pub(crate) fn nb_captures_upper_bound(&self, square: Square) -> i32 {
         self.captures_bounds.value[square.to_index()].1
     }
 
@@ -434,7 +324,7 @@ impl Analysis {
         file: File,
         value: BitBoard,
     ) -> bool {
-        let reachable = self.reachable_from_origin.value[color.to_index()][file.to_index()];
+        let reachable = self.reachable_from_origin(color, file);
         let new_reachable = reachable & value;
         if reachable == new_reachable {
             return false;
@@ -454,8 +344,7 @@ impl Analysis {
         file: File,
         value: BitBoard,
     ) -> bool {
-        let reachable = self.reachable_from_promotion.value[color.to_index()][prom_index(piece)]
-            [file.to_index()];
+        let reachable = self.reachable_from_promotion(color, piece, file);
         let new_reachable = reachable & value;
         if reachable == new_reachable {
             return false;
@@ -473,21 +362,43 @@ impl Analysis {
         &mut self,
         color: Color,
         file: File,
-        distances: &[(Square, u8)],
+        distances: &[u8; NUM_SQUARES],
     ) -> bool {
         let mut progress = false;
-        let array = self.pawn_capture_distances.value[color.to_index()][file.to_index()];
-        for (target, distance) in distances {
-            if array[target.to_index()] > *distance {
+        for target in ALL_SQUARES {
+            let distance = distances[target.to_index()];
+            if self.pawn_capture_distances(color, file, target) < distance {
                 progress = true;
                 self.pawn_capture_distances.value[color.to_index()][file.to_index()]
-                    [target.to_index()] = *distance;
+                    [target.to_index()] = distance;
             }
         }
         if progress {
             self.pawn_capture_distances.counter += 1;
         }
         progress
+    }
+
+    /// Update the information on pawn forced captures for the pawn of the
+    /// given color that started on the given file, for going to the given
+    /// target, with the given value.
+    /// Returns a boolean value indicating whether the update changed anything.
+    pub(crate) fn update_pawn_forced_captures(
+        &mut self,
+        color: Color,
+        file: File,
+        target: Square,
+        value: BitBoard,
+    ) -> bool {
+        let forced = self.pawn_forced_captures(color, file, target);
+        let new_forced = forced | value;
+        if forced == new_forced {
+            return false;
+        }
+        self.pawn_forced_captures.value[color.to_index()][file.to_index()][target.to_index()] =
+            new_forced;
+        self.pawn_forced_captures.counter += 1;
+        true
     }
 
     /// Update the tombs of the piece that started on the given square, with the
@@ -660,11 +571,7 @@ impl fmt::Display for Analysis {
         }
         writeln!(f, "\nreachable (cnt: {}):\n", self.reachable.counter())?;
         for square in ALL_ORIGINS {
-            write_bitboard(
-                f,
-                square.to_string(),
-                self.reachable.value[square.to_index()],
-            )?;
+            write_bitboard(f, square.to_string(), self.reachable(square))?;
         }
         writeln!(
             f,
@@ -676,7 +583,7 @@ impl fmt::Display for Analysis {
             for file in ALL_FILES {
                 let rank = color.to_my_backrank();
                 let square = Square::make_square(rank, file);
-                let reachable = self.reachable_from_origin.value[color.to_index()][file.to_index()];
+                let reachable = self.reachable_from_origin(color, file);
                 write_bitboard(f, square.to_string(), reachable)?;
             }
         }
@@ -691,8 +598,7 @@ impl fmt::Display for Analysis {
                 for file in ALL_FILES {
                     let rank = color.to_their_backrank();
                     let square = Square::make_square(rank, file);
-                    let reachable = self.reachable_from_promotion.value[color.to_index()]
-                        [prom_index(piece)][file.to_index()];
+                    let reachable = self.reachable_from_promotion(color, piece, file);
                     write_bitboard(f, square.to_string(), reachable)?;
                 }
             }
@@ -709,18 +615,37 @@ impl fmt::Display for Analysis {
                     continue;
                 }
                 write!(f, "\n  {:?} {:?}-pawn:", color, file)?;
-                for d in 1..=6 {
+                for d in 0..=6 {
                     write!(f, "\n    {}:", d)?;
                     for target in ALL_SQUARES {
-                        if self.pawn_capture_distances.value[color.to_index()][file.to_index()]
-                            [target.to_index()]
-                            == d
-                        {
+                        if self.pawn_capture_distances(color, file, target) == d {
                             write!(f, " {}", target)?;
                         }
                     }
                 }
                 writeln!(f)?;
+            }
+        }
+        writeln!(
+            f,
+            "\npawn_forced_captures (cnt: {}):",
+            self.pawn_forced_captures.counter()
+        )?;
+        for color in ALL_COLORS {
+            for file in ALL_FILES {
+                for target in get_rank(color.to_their_backrank()) {
+                    let forced = self.pawn_forced_captures(color, file, target);
+                    if forced != EMPTY {
+                        writeln!(
+                            f,
+                            "\n{:?}-{:?} -> {}:\n{}\n",
+                            color,
+                            file,
+                            target,
+                            forced.reverse_colors()
+                        )?;
+                    }
+                }
             }
         }
         writeln!(f, "\ntombs (cnt: {}):\n", self.tombs.counter())?;
