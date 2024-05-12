@@ -83,11 +83,9 @@ pub fn distance_to_target(
     // if the piece is a pawn and can promote, we assume it can then reach the
     // target without further captures
     if piece == Piece::Pawn {
-        let mut distance = analysis.pawn_capture_distances.value[color.to_index()]
-            [origin.get_file().to_index()][target.to_index()];
+        let mut distance = analysis.pawn_capture_distances(color, origin.get_file(), target);
         for promoting_square in get_rank(color.to_their_backrank()) {
-            let d = analysis.pawn_capture_distances.value[color.to_index()]
-                [origin.get_file().to_index()][promoting_square.to_index()];
+            let d = analysis.pawn_capture_distances(color, origin.get_file(), promoting_square);
             if d < distance {
                 distance = d;
             }

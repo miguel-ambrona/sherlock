@@ -115,8 +115,7 @@ pub fn tombs_to_target(
 
     // the pawn goes directly to target
     if final_piece.is_none() || final_piece == Some(Piece::Pawn) {
-        let distance = analysis.pawn_capture_distances.value[color.to_index()]
-            [origin.get_file().to_index()][target.to_index()];
+        let distance = analysis.pawn_capture_distances(color, origin.get_file(), target);
         if distance <= nb_allowed_captures as u8 {
             let path_tombs = analysis.pawn_forced_captures.value[color.to_index()]
                 [origin.get_file().to_index()][target.to_index()];
@@ -136,8 +135,7 @@ pub fn tombs_to_target(
             if tombs == EMPTY {
                 break;
             }
-            let d1 = analysis.pawn_capture_distances.value[color.to_index()]
-                [origin.get_file().to_index()][promoting_square.to_index()];
+            let d1 = analysis.pawn_capture_distances(color, origin.get_file(), promoting_square);
             if d1 > nb_allowed_captures as u8 {
                 continue;
             }

@@ -84,8 +84,7 @@ impl Rule for MobilityRule {
             for file in ALL_FILES {
                 let square = Square::make_square(rank, file);
                 for target in ALL_SQUARES {
-                    let n = analysis.pawn_capture_distances.value[color.to_index()]
-                        [file.to_index()][target.to_index()];
+                    let n = analysis.pawn_capture_distances(color, file, target);
                     let nb_allowed_captures = analysis.nb_captures_upper_bound(square) as u8;
                     if n == 0 || n > nb_allowed_captures {
                         continue;

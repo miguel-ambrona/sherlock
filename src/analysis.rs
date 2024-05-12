@@ -204,6 +204,13 @@ impl Analysis {
         self.reachable_from_promotion.value[color.to_index()][prom_index(piece)][file.to_index()]
     }
 
+    /// The minimum number of captures necessary for the pawn of the given color
+    /// and the given file to reach the given target as a pawn, from its origin
+    /// square.
+    pub(crate) fn pawn_capture_distances(&self, color: Color, file: File, target: Square) -> u8 {
+        self.pawn_capture_distances.value[color.to_index()][file.to_index()][target.to_index()]
+    }
+
     /// The known lower bound on the number of captures performed by the piece
     /// that started the game on the given square.
     #[inline]
@@ -347,10 +354,9 @@ impl Analysis {
         distances: &[u8; NUM_SQUARES],
     ) -> bool {
         let mut progress = false;
-        let array = self.pawn_capture_distances.value[color.to_index()][file.to_index()];
         for target in ALL_SQUARES {
             let distance = distances[target.to_index()];
-            if array[target.to_index()] < distance {
+            if self.pawn_capture_distances(color, file, target) < distance {
                 progress = true;
                 self.pawn_capture_distances.value[color.to_index()][file.to_index()]
                     [target.to_index()] = distance;
@@ -602,10 +608,7 @@ impl fmt::Display for Analysis {
                 for d in 0..=6 {
                     write!(f, "\n    {}:", d)?;
                     for target in ALL_SQUARES {
-                        if self.pawn_capture_distances.value[color.to_index()][file.to_index()]
-                            [target.to_index()]
-                            == d
-                        {
+                        if self.pawn_capture_distances(color, file, target) == d {
                             write!(f, " {}", target)?;
                         }
                     }

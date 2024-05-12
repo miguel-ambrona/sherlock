@@ -87,8 +87,7 @@ pub fn distance_from_origin(
     color: Color,
 ) -> u8 {
     if piece == Piece::Pawn {
-        analysis.pawn_capture_distances.value[color.to_index()][origin.get_file().to_index()]
-            [target.to_index()]
+        analysis.pawn_capture_distances(color, origin.get_file(), target)
     } else if (BitBoard::from_square(origin) & get_rank(color.to_my_backrank())) != EMPTY {
         if BitBoard::from_square(target) & analysis.reachable_from_origin(color, origin.get_file())
             != EMPTY
@@ -101,8 +100,8 @@ pub fn distance_from_origin(
         // the distance after promoting
         let mut distance = 16;
         for promoting_square in get_rank(color.to_their_backrank()) {
-            let distance_to_promotion = analysis.pawn_capture_distances.value[color.to_index()]
-                [origin.get_file().to_index()][promoting_square.to_index()];
+            let distance_to_promotion =
+                analysis.pawn_capture_distances(color, origin.get_file(), promoting_square);
             if distance_to_promotion >= distance {
                 continue;
             }
