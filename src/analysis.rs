@@ -211,6 +211,17 @@ impl Analysis {
         self.pawn_capture_distances.value[color.to_index()][file.to_index()][target.to_index()]
     }
 
+    /// The squares where the pawn of the given color that started on the given
+    /// file must have captured in order to reach the given target.
+    pub(crate) fn pawn_forced_captures(
+        &self,
+        color: Color,
+        file: File,
+        target: Square,
+    ) -> BitBoard {
+        self.pawn_forced_captures.value[color.to_index()][file.to_index()][target.to_index()]
+    }
+
     /// The known lower bound on the number of captures performed by the piece
     /// that started the game on the given square.
     #[inline]
@@ -379,8 +390,7 @@ impl Analysis {
         target: Square,
         value: BitBoard,
     ) -> bool {
-        let forced =
-            self.pawn_forced_captures.value[color.to_index()][file.to_index()][target.to_index()];
+        let forced = self.pawn_forced_captures(color, file, target);
         let new_forced = forced | value;
         if forced == new_forced {
             return false;
@@ -624,8 +634,7 @@ impl fmt::Display for Analysis {
         for color in ALL_COLORS {
             for file in ALL_FILES {
                 for target in get_rank(color.to_their_backrank()) {
-                    let forced = self.pawn_forced_captures.value[color.to_index()][file.to_index()]
-                        [target.to_index()];
+                    let forced = self.pawn_forced_captures(color, file, target);
                     if forced != EMPTY {
                         writeln!(
                             f,

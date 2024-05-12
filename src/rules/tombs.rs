@@ -117,8 +117,7 @@ pub fn tombs_to_target(
     if final_piece.is_none() || final_piece == Some(Piece::Pawn) {
         let distance = analysis.pawn_capture_distances(color, origin.get_file(), target);
         if distance <= nb_allowed_captures as u8 {
-            let path_tombs = analysis.pawn_forced_captures.value[color.to_index()]
-                [origin.get_file().to_index()][target.to_index()];
+            let path_tombs = analysis.pawn_forced_captures(color, origin.get_file(), target);
             tombs &= path_tombs;
             min_distance = min(distance, min_distance);
         }
@@ -139,8 +138,8 @@ pub fn tombs_to_target(
             if d1 > nb_allowed_captures as u8 {
                 continue;
             }
-            let path_tombs = analysis.pawn_forced_captures.value[color.to_index()]
-                [origin.get_file().to_index()][promoting_square.to_index()];
+            let path_tombs =
+                analysis.pawn_forced_captures(color, origin.get_file(), promoting_square);
             for piece in candidate_promotion_pieces.clone() {
                 if BitBoard::from_square(target)
                     & analysis.reachable_from_promotion(color, piece, promoting_square.get_file())
