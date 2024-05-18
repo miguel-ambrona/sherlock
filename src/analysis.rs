@@ -8,7 +8,7 @@ use chess::{
 
 use crate::{
     rules::ALL_ORIGINS,
-    utils::{prom_index, MobilityGraph},
+    utils::{prom_index, MobilityGraph, UncertainSet},
 };
 
 pub(crate) struct Counter<T> {
@@ -128,6 +128,12 @@ pub struct Analysis {
     /// have captured to reach square `s` as a pawn.
     pub(crate) pawn_forced_captures: Counter<[[[BitBoard; NUM_SQUARES]; NUM_FILES]; NUM_COLORS]>,
 
+    /// The squares where the missing pieces of each color started the game.
+    ///
+    /// For `c : Color`, `missing[c.to_index()]` is an `UncertainSet` encoding
+    /// the squares where the missing pieces of color `c` started the game.
+    pub(crate) missing: Counter<[UncertainSet; NUM_COLORS]>,
+
     /// The squares where opponent pieces have certainly been captured.
     ///
     /// For `s : Square`, `tombs[s.to_index()]` is a `BitBoard` encoding
@@ -170,6 +176,10 @@ impl Analysis {
             ),
             pawn_capture_distances: Counter::new([[[0; NUM_SQUARES]; NUM_FILES]; NUM_COLORS]),
             pawn_forced_captures: Counter::new([[[EMPTY; NUM_SQUARES]; NUM_FILES]; NUM_COLORS]),
+            missing: Counter::new([
+                UncertainSet::new(16 - board.color_combined(Color::White).popcnt()),
+                UncertainSet::new(16 - board.color_combined(Color::Black).popcnt()),
+            ]),
             tombs: Counter::new([EMPTY; NUM_SQUARES]),
             captures_bounds: Counter::new([(0, 15); NUM_SQUARES]),
             mobility: Counter::new([
@@ -222,9 +232,20 @@ impl Analysis {
         self.pawn_forced_captures.value[color.to_index()][file.to_index()][target.to_index()]
     }
 
+    /// The missing pieces of the given color.
+    pub(crate) fn missing(&self, color: Color) -> UncertainSet {
+        self.missing.value[color.to_index()]
+    }
+
+    /// The squares where the piece that started on the given square has
+    /// certainly captured opponents pieces.
+    pub(crate) fn tombs(&self, square: Square) -> BitBoard {
+        self.tombs.value[square.to_index()]
+    }
+
     /// The known lower bound on the number of captures performed by the piece
     /// that started the game on the given square.
-    #[inline]
+
     pub(crate) fn nb_captures_lower_bound(&self, square: Square) -> i32 {
         self.captures_bounds.value[square.to_index()].0
     }
@@ -648,9 +669,13 @@ impl fmt::Display for Analysis {
                 }
             }
         }
+        writeln!(f, "\nmissing (cnt: {}):\n", self.missing.counter())?;
+        for color in ALL_COLORS {
+            writeln!(f, "{:?} missing:\n{}", color, self.missing(color))?;
+        }
         writeln!(f, "\ntombs (cnt: {}):\n", self.tombs.counter())?;
         for square in ALL_ORIGINS {
-            write_bitboard(f, square.to_string(), self.tombs.value[square.to_index()])?;
+            write_bitboard(f, square.to_string(), self.tombs(square))?;
         }
         writeln!(
             f,
