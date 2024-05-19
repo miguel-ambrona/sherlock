@@ -422,6 +422,18 @@ impl Analysis {
         true
     }
 
+    /// Update the information of missing pieces of the given color, with a
+    /// given set of pieces that are certainly not missing.
+    pub(crate) fn update_certainly_not_missing(&mut self, color: Color, value: BitBoard) -> bool {
+        self.missing.value[color.to_index()].remove(value)
+    }
+
+    /// Update the information of missing pieces of the given color, with a
+    /// given set of pieces that are certainly missing.
+    pub(crate) fn update_certainly_missing(&mut self, color: Color, value: BitBoard) -> bool {
+        self.missing.value[color.to_index()].add(value)
+    }
+
     /// Update the tombs of the piece that started on the given square, with the
     /// given value.
     /// Returns a boolean value indicating whether the update changed anything.
