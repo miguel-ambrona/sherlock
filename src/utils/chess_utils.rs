@@ -2,7 +2,7 @@
 
 use chess::{
     get_bishop_rays, get_file, get_king_moves, get_knight_moves, get_pawn_attacks, get_pawn_quiets,
-    get_rank, get_rook_rays, BitBoard, Board, Color, Piece, Square, EMPTY,
+    get_rank, get_rook_rays, BitBoard, Board, Color, Piece, Rank, Square, EMPTY,
 };
 
 use super::LIGHT_SQUARES;
@@ -50,6 +50,14 @@ pub fn square_color(square: Square) -> Color {
     match BitBoard::from_square(square) & LIGHT_SQUARES {
         EMPTY => Color::Black,
         _ => Color::White,
+    }
+}
+
+pub fn origin_color(origin: Square) -> Color {
+    match origin.get_rank() {
+        Rank::First | Rank::Second => Color::White,
+        Rank::Seventh | Rank::Eighth => Color::White,
+        _ => panic!("Not an origin square"),
     }
 }
 
@@ -102,6 +110,21 @@ pub fn checking_predecessors(piece: Piece, color: Color, square: Square) -> BitB
         predecessors &= !get_file(square.get_file());
     }
     predecessors
+}
+
+/// Returns `Some piece` iff all the given squares contain a piece of type
+/// `piece`. Returns `None` otherwise.
+pub fn common_piece_in_all_squares(board: &Board, squares: BitBoard) -> Option<Piece> {
+    if squares == EMPTY {
+        return None;
+    }
+    let piece_opt = board.piece_on(squares.to_square());
+    for square in squares {
+        if board.piece_on(square) != piece_opt {
+            return None;
+        }
+    }
+    piece_opt
 }
 
 #[cfg(test)]

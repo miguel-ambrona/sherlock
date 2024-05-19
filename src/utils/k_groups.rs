@@ -7,9 +7,9 @@
 use chess::{BitBoard, EMPTY};
 
 /// On input `k`, an array of sets (64 sets, one for each square on the board)
-/// and a set of (square) indices given in the form of `BitBoard`, this function
-/// finds a `k`-group and returns its union set and a set of the indices that
-/// *do not* form the k-group.
+/// and a set of `Square`-indices given in the form of `BitBoard`, this
+/// function finds a `k`-group and returns its union set and a set of the
+/// indices that *do not* form the k-group.
 ///
 /// This function returns `None` iff no k-group exists in the given sets
 /// filtered by the given indices.

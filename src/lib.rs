@@ -20,6 +20,7 @@
 
 use chess::{BitBoard, Square, EMPTY};
 use rules::ALL_ORIGINS;
+use utils::origin_color;
 
 mod analysis;
 mod legality;
@@ -56,6 +57,20 @@ impl Analysis {
     #[inline]
     pub fn is_steady(&self, square: Square) -> bool {
         BitBoard::from_square(square) & self.steady.value != EMPTY
+    }
+
+    /// Tells whether the piece that started the game on the given square is
+    /// known to be missing (it was captured during the game).
+    #[inline]
+    pub fn is_definitely_missing(&self, origin: Square) -> bool {
+        self.missing(origin_color(origin)).mem(origin)
+    }
+
+    /// Tells whether the piece that started the game on the given square is
+    /// known to be still on the board (possibly in promoted form).
+    #[inline]
+    pub fn is_definitely_on_the_board(&self, origin: Square) -> bool {
+        BitBoard::from_square(origin) & self.missing(origin_color(origin)).all() == EMPTY
     }
 
     /// The candidate origins of the piece that is on the given square in the
@@ -129,16 +144,16 @@ impl Analysis {
     ///
     /// // On E3 it must have captured the missing black knight, so the knight that started on
     /// // G8 was captured on E3 or is standing on H5 (and the other knight was captured on E3)
-    /// // assert_eq!(
-    /// //    analysis.destinies(Square::G8),
-    /// //    BitBoard::from_square(Square::E3) | BitBoard::from_square(Square::H5)
-    /// // );
+    /// assert_eq!(
+    ///     analysis.destinies(Square::G8),
+    ///     BitBoard::from_square(Square::E3) | BitBoard::from_square(Square::H5)
+    /// );
     ///
     /// // On the other hand, the pawn that started on D7 must have been captured on D4
-    /// // assert_eq!(
-    /// //    analysis.destinies(Square::D7),
-    /// //    BitBoard::from_square(Square::D4)
-    /// //);
+    /// assert_eq!(
+    ///     analysis.destinies(Square::D7),
+    ///     BitBoard::from_square(Square::D4)
+    /// );
     /// ```
     #[inline]
     pub fn destinies(&self, square: Square) -> BitBoard {
@@ -151,7 +166,7 @@ impl Analysis {
     /// <details>
     /// <summary>Visualize this example's position</summary>
     ///
-    /// ![FEN](https://backscattering.de/web-boardimage/board.svg?fen=r1b1kb1r/pp1ppppp/2p5/8/8/2B5/PP1PPPPP/RN1QKBNR&colors=lichess-blue&arrows=Gc7,Gb6c7,Gd6c7&squares=e4)
+    /// ![FEN](https://backscattering.de/web-boardimage/board.svg?fen=r1b1kb1r/pp1ppppp/2p5/8/8/8/PP1PPPPP/RNQQKBNR&colors=lichess-blue&arrows=Gb6c7,Gd6c7,Gc7b8&squares=e4)
     ///
     /// </details>
     ///
@@ -161,15 +176,16 @@ impl Analysis {
     /// use chess::{BitBoard, Board, Square, EMPTY};
     /// use sherlock::{analyze, Error};
     ///
-    /// let board = Board::from_str("r1b1kb1r/pp1ppppp/2p5/8/8/2B5/PP1PPPPP/RN1QKBNR w KQkq -")
+    /// let board = Board::from_str("r1b1kb1r/pp1ppppp/2p5/8/8/8/PP1PPPPP/RNQQKBNR w KQkq -")
     ///     .expect("Valid Position");
     /// let analysis = analyze(&board);
     ///
-    /// // The C2-pawn has certainly promoted (it is now the bishop on C3), in order to do so
-    /// // it must have captured on C7 (two other captures took place, but their place is uncertain)
+    /// // The C2-pawn has certainly promoted (it is now one of the White queens), in order to do so
+    /// // it must have captured on C7 and B8 (not D8, as it would have given check to a king that
+    /// // never moved); this pawn captured a third piece, but it is not clear where
     /// assert_eq!(
     ///     analysis.get_captures(Square::C2),
-    ///     Ok(BitBoard::from_square(Square::C7))
+    ///     Ok(BitBoard::from_square(Square::C7) | BitBoard::from_square(Square::B8))
     /// );
     ///
     /// // if we provide a square not in the 1st, 2nd, 7th or 8th rank

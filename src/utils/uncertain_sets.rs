@@ -1,6 +1,6 @@
 use std::fmt;
 
-use chess::{BitBoard, EMPTY};
+use chess::{BitBoard, Square, EMPTY};
 
 #[derive(Debug, Clone, Copy)]
 pub struct UncertainSet {
@@ -19,6 +19,21 @@ impl UncertainSet {
             certain: EMPTY,
             candidates: !EMPTY,
         }
+    }
+
+    /// The size of Self.
+    #[allow(dead_code)]
+    pub fn size(&self) -> u32 {
+        self.size
+    }
+
+    #[allow(dead_code)]
+    pub fn certainly_in_the_set(&self) -> BitBoard {
+        self.certain
+    }
+
+    pub fn set_candidates(&self) -> BitBoard {
+        self.candidates
     }
 
     /// Adds the given elements to Self.
@@ -44,6 +59,16 @@ impl UncertainSet {
         self.candidates = new_candidates;
         self.simplify();
         true
+    }
+
+    /// All the elements potentially in the set, including all the candidates.
+    pub fn all(&self) -> BitBoard {
+        self.certain | self.candidates
+    }
+
+    /// Check is the given square is certainly in the Self.
+    pub fn mem(&self, square: Square) -> bool {
+        BitBoard::from_square(square) & self.certain != EMPTY
     }
 
     fn simplify(&mut self) {

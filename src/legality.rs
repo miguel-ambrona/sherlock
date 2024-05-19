@@ -17,6 +17,7 @@ fn init_rules() -> Vec<Box<dyn Rule>> {
         Box::new(RouteFromOriginsRule::new()),
         Box::new(RouteToReachable::new()),
         Box::new(MissingRule::new()),
+        Box::new(CapturesRule::new()),
         Box::new(TombsRule::new()),
     ]
 }
@@ -39,6 +40,7 @@ pub fn analyze(board: &Board) -> Analysis {
         let mut progress = false;
         for rule in rules.iter_mut() {
             if rule.is_applicable(&analysis) && analysis.result.is_none() {
+                println!("{:?}", rule);
                 rule.update(&analysis);
                 progress |= rule.apply(&mut analysis);
             }

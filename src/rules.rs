@@ -61,3 +61,6 @@ pub use missing::*;
 
 mod captures;
 pub use captures::*;
+
+mod tombs;
+pub use tombs::*;
