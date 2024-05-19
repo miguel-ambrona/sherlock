@@ -56,5 +56,8 @@ pub use route_to_reachable::*;
 mod captures_bounds;
 pub use captures_bounds::*;
 
+mod missing;
+pub use missing::*;
+
 mod tombs;
 pub use tombs::*;

@@ -16,6 +16,7 @@ fn init_rules() -> Vec<Box<dyn Rule>> {
         Box::new(MobilityRule::new()),
         Box::new(RouteFromOriginsRule::new()),
         Box::new(RouteToReachable::new()),
+        Box::new(MissingRule::new()),
         Box::new(TombsRule::new()),
     ]
 }

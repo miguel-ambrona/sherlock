@@ -47,6 +47,9 @@ impl Rule for RefineOriginsRule {
                                 progress |= analysis.update_origins(square, square_origins);
                             }
 
+                            // we remove the k-group from the set of candidate missing pieces
+                            progress |= analysis.update_certainly_not_missing(color, group);
+
                             // the destinies of the k-group are limited by the group_indices
                             for origin in group {
                                 progress |= analysis.update_destinies(origin, group_indices)

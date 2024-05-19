@@ -9,3 +9,6 @@ pub use chess_utils::*;
 
 mod mobility;
 pub use mobility::*;
+
+mod uncertain_sets;
+pub use uncertain_sets::*;
