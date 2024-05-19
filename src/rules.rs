@@ -59,5 +59,5 @@ pub use nb_captures::*;
 mod missing;
 pub use missing::*;
 
-mod tombs;
-pub use tombs::*;
+mod captures;
+pub use captures::*;

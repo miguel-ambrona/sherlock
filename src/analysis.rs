@@ -136,10 +136,10 @@ pub struct Analysis {
 
     /// The squares where opponent pieces have certainly been captured.
     ///
-    /// For `s : Square`, `tombs[s.to_index()]` is a `BitBoard` encoding
+    /// For `s : Square`, `captures[s.to_index()]` is a `BitBoard` encoding
     /// a set of squares where the piece that started on `s` has certainly
     /// captured an enemy piece.
-    pub(crate) tombs: Counter<[BitBoard; NUM_SQUARES]>,
+    pub(crate) captures: Counter<[BitBoard; NUM_SQUARES]>,
 
     /// A lower-upper bound pair on the number of captures performed by every
     /// piece.
@@ -180,7 +180,7 @@ impl Analysis {
                 UncertainSet::new(16 - board.color_combined(Color::White).popcnt()),
                 UncertainSet::new(16 - board.color_combined(Color::Black).popcnt()),
             ]),
-            tombs: Counter::new([EMPTY; NUM_SQUARES]),
+            captures: Counter::new([EMPTY; NUM_SQUARES]),
             nb_captures: Counter::new([(0, 15); NUM_SQUARES]),
             mobility: Counter::new([
                 core::array::from_fn(|i| MobilityGraph::init(ALL_PIECES[i], Color::White)),
@@ -239,8 +239,8 @@ impl Analysis {
 
     /// The squares where the piece that started on the given square has
     /// certainly captured opponents pieces.
-    pub(crate) fn tombs(&self, square: Square) -> BitBoard {
-        self.tombs.value[square.to_index()]
+    pub(crate) fn captures(&self, square: Square) -> BitBoard {
+        self.captures.value[square.to_index()]
     }
 
     /// The known lower bound on the number of captures performed by the piece
@@ -434,16 +434,16 @@ impl Analysis {
         self.missing.value[color.to_index()].add(value)
     }
 
-    /// Update the tombs of the piece that started on the given square, with the
-    /// given value.
+    /// Update the captures of the piece that started on the given square, with
+    /// the given value.
     /// Returns a boolean value indicating whether the update changed anything.
-    pub(crate) fn update_tombs(&mut self, square: Square, value: BitBoard) -> bool {
-        let new_tombs = self.tombs.value[square.to_index()] | value;
-        if self.tombs.value[square.to_index()] == new_tombs {
+    pub(crate) fn update_captures(&mut self, square: Square, value: BitBoard) -> bool {
+        let new_captures = self.captures.value[square.to_index()] | value;
+        if self.captures.value[square.to_index()] == new_captures {
             return false;
         }
-        self.tombs.value[square.to_index()] = new_tombs;
-        self.tombs.counter += 1;
+        self.captures.value[square.to_index()] = new_captures;
+        self.captures.counter += 1;
         true
     }
 
@@ -685,9 +685,9 @@ impl fmt::Display for Analysis {
         for color in ALL_COLORS {
             writeln!(f, "{:?} missing:\n{}", color, self.missing(color))?;
         }
-        writeln!(f, "\ntombs (cnt: {}):\n", self.tombs.counter())?;
+        writeln!(f, "\ncaptures (cnt: {}):\n", self.captures.counter())?;
         for square in ALL_ORIGINS {
-            write_bitboard(f, square.to_string(), self.tombs(square))?;
+            write_bitboard(f, square.to_string(), self.captures(square))?;
         }
         writeln!(f, "\nnb_captures (cnt: {}):\n", self.nb_captures.counter)?;
         let mut lines = vec![];
