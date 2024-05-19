@@ -3,7 +3,7 @@
 //! For every pawn, we compute the squares where it must have captured an enemy
 //! piece in its route to its destinies.
 //! If a capturing square is common to all its possible destinies, we add this
-//! information to their set of tombs.
+//! information to their set of captures.
 
 use std::cmp::min;
 
@@ -19,7 +19,7 @@ pub struct TombsRule {
     reachable_from_promotion_counter: usize,
     destinies_counter: usize,
     origins_counter: usize,
-    captures_bounds_counter: usize,
+    nb_captures_counter: usize,
 }
 
 impl Rule for TombsRule {
@@ -30,7 +30,7 @@ impl Rule for TombsRule {
             reachable_from_promotion_counter: 0,
             destinies_counter: 0,
             origins_counter: 0,
-            captures_bounds_counter: 0,
+            nb_captures_counter: 0,
         }
     }
 
@@ -40,7 +40,7 @@ impl Rule for TombsRule {
         self.reachable_from_promotion_counter = analysis.reachable_from_promotion.counter();
         self.destinies_counter = analysis.destinies.counter();
         self.origins_counter = analysis.origins.counter();
-        self.captures_bounds_counter = analysis.captures_bounds.counter();
+        self.nb_captures_counter = analysis.nb_captures.counter();
     }
 
     fn is_applicable(&self, analysis: &Analysis) -> bool {
@@ -49,33 +49,33 @@ impl Rule for TombsRule {
             || self.reachable_from_promotion_counter != analysis.reachable_from_promotion.counter()
             || self.destinies_counter != analysis.destinies.counter()
             || self.origins_counter != analysis.origins.counter()
-            || self.captures_bounds_counter != analysis.captures_bounds.counter()
+            || self.nb_captures_counter != analysis.nb_captures.counter()
     }
 
     fn apply(&self, analysis: &mut Analysis) -> bool {
         let mut progress = false;
 
         for origin in (get_rank(Rank::Second) | get_rank(Rank::Seventh)) & !analysis.steady.value {
-            let mut tombs = !EMPTY;
+            let mut captures = !EMPTY;
             let mut min_distance = 16;
 
             for destiny in analysis.destinies(origin) {
                 // TODO: This condition could be more general and instead be : !missing(origin)
-                // Change get_tombs doc example to a Queen on C3 instead of a Bishop when
-                // "missing" is supported.
+                // Change get_captures doc example to a Queen on C3 instead of a Bishop when
+                // "missing" and non-deterministic rules are supported.
                 let final_piece = if analysis.origins(destiny) == BitBoard::from_square(origin) {
                     analysis.board.piece_on(destiny)
                 } else {
                     None
                 };
                 let nb_allowed_captures = analysis.nb_captures_upper_bound(origin) as u32;
-                let (tombs_to_destiny, distance_to_destiny) =
-                    tombs_to_target(analysis, origin, destiny, nb_allowed_captures, final_piece);
-                tombs &= tombs_to_destiny;
+                let (captures_to_destiny, distance_to_destiny) =
+                    captures_to_target(analysis, origin, destiny, nb_allowed_captures, final_piece);
+                captures &= captures_to_destiny;
                 min_distance = min(distance_to_destiny, min_distance);
             }
-            if tombs != !EMPTY {
-                progress |= analysis.update_tombs(origin, tombs);
+            if captures != !EMPTY {
+                progress |= analysis.update_captures(origin, captures);
                 progress |= analysis.update_captures_lower_bound(origin, min_distance as i32);
             }
         }
@@ -97,7 +97,7 @@ impl Rule for TombsRule {
 /// perform the journey as a second argument.
 ///
 /// If the specified route is impossible, this function returns `EMPTY`.
-pub fn tombs_to_target(
+pub fn captures_to_target(
     analysis: &Analysis,
     origin: Square,
     target: Square,
@@ -107,18 +107,18 @@ pub fn tombs_to_target(
     let color = match origin.get_rank() {
         Rank::Second => Color::White,
         Rank::Seventh => Color::Black,
-        // we only know how to derive non-trivial tombs information for pawns
+        // we only know how to derive non-trivial captures information for pawns
         _ => return (EMPTY, 0),
     };
-    let mut tombs = !EMPTY;
+    let mut captures = !EMPTY;
     let mut min_distance = 16;
 
     // the pawn goes directly to target
     if final_piece.is_none() || final_piece == Some(Piece::Pawn) {
         let distance = analysis.pawn_capture_distances(color, origin.get_file(), target);
         if distance <= nb_allowed_captures as u8 {
-            let path_tombs = analysis.pawn_forced_captures(color, origin.get_file(), target);
-            tombs &= path_tombs;
+            let path_captures = analysis.pawn_forced_captures(color, origin.get_file(), target);
+            captures &= path_captures;
             min_distance = min(distance, min_distance);
         }
     }
@@ -131,14 +131,14 @@ pub fn tombs_to_target(
             Some(piece) => vec![piece],
         };
         for promoting_square in get_rank(color.to_their_backrank()) & !analysis.steady.value {
-            if tombs == EMPTY {
+            if captures == EMPTY {
                 break;
             }
             let d1 = analysis.pawn_capture_distances(color, origin.get_file(), promoting_square);
             if d1 > nb_allowed_captures as u8 {
                 continue;
             }
-            let path_tombs =
+            let path_captures =
                 analysis.pawn_forced_captures(color, origin.get_file(), promoting_square);
             for piece in candidate_promotion_pieces.clone() {
                 if BitBoard::from_square(target)
@@ -147,7 +147,7 @@ pub fn tombs_to_target(
                 {
                     continue;
                 }
-                tombs &= path_tombs;
+                captures &= path_captures;
                 min_distance = min(d1, min_distance);
                 // the promotion piece is unimportant, we can stop now that a path was found
                 break;
@@ -155,10 +155,11 @@ pub fn tombs_to_target(
         }
     }
 
-    // if at this point tombs == !EMPTY, all routes were impossible, so return EMPTY
-    if tombs == !EMPTY {
+    // if at this point captures == !EMPTY, all routes were impossible, so return
+    // EMPTY
+    if captures == !EMPTY {
         return (EMPTY, min_distance);
     }
 
-    (tombs, min_distance)
+    (captures, min_distance)
 }

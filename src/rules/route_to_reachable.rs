@@ -11,7 +11,7 @@ use crate::analysis::Analysis;
 #[derive(Debug)]
 pub struct RouteToReachable {
     mobility_counter: usize,
-    captures_bounds_counter: usize,
+    nb_captures_counter: usize,
     steady_counter: usize,
     pawn_capture_distances_counter: usize,
     reachable_from_origin_counter: usize,
@@ -21,7 +21,7 @@ impl Rule for RouteToReachable {
     fn new() -> Self {
         Self {
             mobility_counter: 0,
-            captures_bounds_counter: 0,
+            nb_captures_counter: 0,
             steady_counter: 0,
             pawn_capture_distances_counter: 0,
             reachable_from_origin_counter: 0,
@@ -30,7 +30,7 @@ impl Rule for RouteToReachable {
 
     fn update(&mut self, analysis: &Analysis) {
         self.mobility_counter = analysis.mobility.counter();
-        self.captures_bounds_counter = analysis.captures_bounds.counter();
+        self.nb_captures_counter = analysis.nb_captures.counter();
         self.steady_counter = analysis.steady.counter();
         self.pawn_capture_distances_counter = analysis.pawn_capture_distances.counter();
         self.reachable_from_origin_counter = analysis.reachable_from_origin.counter();
@@ -38,7 +38,7 @@ impl Rule for RouteToReachable {
 
     fn is_applicable(&self, analysis: &Analysis) -> bool {
         self.mobility_counter != analysis.mobility.counter()
-            || self.captures_bounds_counter != analysis.captures_bounds.counter()
+            || self.nb_captures_counter != analysis.nb_captures.counter()
             || self.steady_counter != analysis.steady.counter()
             || self.pawn_capture_distances_counter != analysis.pawn_capture_distances.counter()
             || self.reachable_from_origin_counter != analysis.reachable_from_origin.counter()

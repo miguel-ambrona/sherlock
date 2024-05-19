@@ -168,19 +168,22 @@ impl Analysis {
     /// // The C2-pawn has certainly promoted (it is now the bishop on C3), in order to do so
     /// // it must have captured on C7 (two other captures took place, but their place is uncertain)
     /// assert_eq!(
-    ///     analysis.get_tombs(Square::C2),
+    ///     analysis.get_captures(Square::C2),
     ///     Ok(BitBoard::from_square(Square::C7))
     /// );
     ///
     /// // if we provide a square not in the 1st, 2nd, 7th or 8th rank
-    /// assert_eq!(analysis.get_tombs(Square::E4), Err(Error::NotOriginSquare));
+    /// assert_eq!(
+    ///     analysis.get_captures(Square::E4),
+    ///     Err(Error::NotOriginSquare)
+    /// );
     /// ```
     #[inline]
-    pub fn get_tombs(&self, square: Square) -> Result<BitBoard, Error> {
+    pub fn get_captures(&self, square: Square) -> Result<BitBoard, Error> {
         if BitBoard::from_square(square) & ALL_ORIGINS == EMPTY {
             Err(Error::NotOriginSquare)
         } else {
-            Ok(self.tombs.value[square.to_index()])
+            Ok(self.captures.value[square.to_index()])
         }
     }
 }

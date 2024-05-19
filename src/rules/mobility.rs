@@ -14,7 +14,7 @@ use super::{Analysis, Rule};
 pub struct MobilityRule {
     mobility_counter: usize,
     pawn_capture_distances_counter: usize,
-    captures_bounds_counter: usize,
+    nb_captures_counter: usize,
 }
 
 impl Rule for MobilityRule {
@@ -22,20 +22,20 @@ impl Rule for MobilityRule {
         MobilityRule {
             mobility_counter: 0,
             pawn_capture_distances_counter: 0,
-            captures_bounds_counter: 0,
+            nb_captures_counter: 0,
         }
     }
 
     fn update(&mut self, analysis: &Analysis) {
         self.mobility_counter = analysis.mobility.counter();
         self.pawn_capture_distances_counter = analysis.pawn_capture_distances.counter();
-        self.captures_bounds_counter = analysis.captures_bounds.counter();
+        self.nb_captures_counter = analysis.nb_captures.counter();
     }
 
     fn is_applicable(&self, analysis: &Analysis) -> bool {
         self.mobility_counter != analysis.mobility.counter()
             || self.pawn_capture_distances_counter != analysis.pawn_capture_distances.counter()
-            || self.captures_bounds_counter != analysis.captures_bounds.counter()
+            || self.nb_captures_counter != analysis.nb_captures.counter()
     }
 
     fn apply(&self, analysis: &mut Analysis) -> bool {
