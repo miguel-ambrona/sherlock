@@ -19,7 +19,7 @@ pub struct TombsRule {
     reachable_from_promotion_counter: usize,
     destinies_counter: usize,
     origins_counter: usize,
-    captures_bounds_counter: usize,
+    nb_captures_counter: usize,
 }
 
 impl Rule for TombsRule {
@@ -30,7 +30,7 @@ impl Rule for TombsRule {
             reachable_from_promotion_counter: 0,
             destinies_counter: 0,
             origins_counter: 0,
-            captures_bounds_counter: 0,
+            nb_captures_counter: 0,
         }
     }
 
@@ -40,7 +40,7 @@ impl Rule for TombsRule {
         self.reachable_from_promotion_counter = analysis.reachable_from_promotion.counter();
         self.destinies_counter = analysis.destinies.counter();
         self.origins_counter = analysis.origins.counter();
-        self.captures_bounds_counter = analysis.captures_bounds.counter();
+        self.nb_captures_counter = analysis.nb_captures.counter();
     }
 
     fn is_applicable(&self, analysis: &Analysis) -> bool {
@@ -49,7 +49,7 @@ impl Rule for TombsRule {
             || self.reachable_from_promotion_counter != analysis.reachable_from_promotion.counter()
             || self.destinies_counter != analysis.destinies.counter()
             || self.origins_counter != analysis.origins.counter()
-            || self.captures_bounds_counter != analysis.captures_bounds.counter()
+            || self.nb_captures_counter != analysis.nb_captures.counter()
     }
 
     fn apply(&self, analysis: &mut Analysis) -> bool {

@@ -144,10 +144,10 @@ pub struct Analysis {
     /// A lower-upper bound pair on the number of captures performed by every
     /// piece.
     ///
-    /// For `s : Square`, `captures_bounds[s.to_index()] = (l, u)` means that
+    /// For `s : Square`, `nb_captures[s.to_index()] = (l, u)` means that
     /// the number of captures, `n` performed by the piece that started the
     /// game on `s` is such that `l <= n <= u`.
-    pub(crate) captures_bounds: Counter<[(i32, i32); NUM_SQUARES]>,
+    pub(crate) nb_captures: Counter<[(i32, i32); NUM_SQUARES]>,
 
     /// Mobility graphs, for each color and piece type, where nodes are squares
     /// and arrows indicate the possible moves that a piece of the
@@ -181,7 +181,7 @@ impl Analysis {
                 UncertainSet::new(16 - board.color_combined(Color::Black).popcnt()),
             ]),
             tombs: Counter::new([EMPTY; NUM_SQUARES]),
-            captures_bounds: Counter::new([(0, 15); NUM_SQUARES]),
+            nb_captures: Counter::new([(0, 15); NUM_SQUARES]),
             mobility: Counter::new([
                 core::array::from_fn(|i| MobilityGraph::init(ALL_PIECES[i], Color::White)),
                 core::array::from_fn(|i| MobilityGraph::init(ALL_PIECES[i], Color::Black)),
@@ -247,14 +247,14 @@ impl Analysis {
     /// that started the game on the given square.
 
     pub(crate) fn nb_captures_lower_bound(&self, square: Square) -> i32 {
-        self.captures_bounds.value[square.to_index()].0
+        self.nb_captures.value[square.to_index()].0
     }
 
     /// The known upper bound on the number of captures performed by the piece
     /// that started the game on the given square.
     #[inline]
     pub(crate) fn nb_captures_upper_bound(&self, square: Square) -> i32 {
-        self.captures_bounds.value[square.to_index()].1
+        self.nb_captures.value[square.to_index()].1
     }
 
     /// The piece type of the piece on the given square in the analysis's board.
@@ -546,11 +546,11 @@ impl Analysis {
     /// piece that started the game on the given square, with the given
     /// value.
     pub(crate) fn update_captures_lower_bound(&mut self, square: Square, bound: i32) -> bool {
-        if self.captures_bounds.value[square.to_index()].0 >= bound {
+        if self.nb_captures.value[square.to_index()].0 >= bound {
             return false;
         }
-        self.captures_bounds.value[square.to_index()].0 = bound;
-        self.captures_bounds.counter += 1;
+        self.nb_captures.value[square.to_index()].0 = bound;
+        self.nb_captures.counter += 1;
         true
     }
 
@@ -558,11 +558,11 @@ impl Analysis {
     /// piece that started the game on the given square, with the given
     /// value.
     pub(crate) fn update_captures_upper_bound(&mut self, square: Square, bound: i32) -> bool {
-        if self.captures_bounds.value[square.to_index()].1 <= bound {
+        if self.nb_captures.value[square.to_index()].1 <= bound {
             return false;
         }
-        self.captures_bounds.value[square.to_index()].1 = bound;
-        self.captures_bounds.counter += 1;
+        self.nb_captures.value[square.to_index()].1 = bound;
+        self.nb_captures.counter += 1;
         true
     }
 }
@@ -689,11 +689,7 @@ impl fmt::Display for Analysis {
         for square in ALL_ORIGINS {
             write_bitboard(f, square.to_string(), self.tombs(square))?;
         }
-        writeln!(
-            f,
-            "\ncaptures bounds (cnt: {}):\n",
-            self.captures_bounds.counter
-        )?;
+        writeln!(f, "\nnb_captures (cnt: {}):\n", self.nb_captures.counter)?;
         let mut lines = vec![];
         let mut line = vec![];
         let mut cnt = 0;

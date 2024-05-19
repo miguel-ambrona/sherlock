@@ -14,7 +14,7 @@ pub struct RouteFromOriginsRule {
     pawn_capture_distances_counter: usize,
     pawn_forced_captures_counter: usize,
     reachable_from_promotion_counter: usize,
-    captures_bounds_counter: usize,
+    nb_captures_counter: usize,
     steady_counter: usize,
 }
 
@@ -24,7 +24,7 @@ impl Rule for RouteFromOriginsRule {
             pawn_capture_distances_counter: 0,
             pawn_forced_captures_counter: 0,
             reachable_from_promotion_counter: 0,
-            captures_bounds_counter: 0,
+            nb_captures_counter: 0,
             steady_counter: 0,
         }
     }
@@ -33,7 +33,7 @@ impl Rule for RouteFromOriginsRule {
         self.pawn_capture_distances_counter = analysis.pawn_capture_distances.counter();
         self.pawn_forced_captures_counter = analysis.pawn_forced_captures.counter();
         self.reachable_from_promotion_counter = analysis.reachable_from_promotion.counter();
-        self.captures_bounds_counter = analysis.captures_bounds.counter();
+        self.nb_captures_counter = analysis.nb_captures.counter();
         self.steady_counter = analysis.steady.counter();
     }
 
@@ -41,7 +41,7 @@ impl Rule for RouteFromOriginsRule {
         self.pawn_capture_distances_counter != analysis.pawn_capture_distances.counter()
             || self.pawn_forced_captures_counter != analysis.pawn_forced_captures.counter()
             || self.reachable_from_promotion_counter != analysis.reachable_from_promotion.counter()
-            || self.captures_bounds_counter != analysis.captures_bounds.counter()
+            || self.nb_captures_counter != analysis.nb_captures.counter()
             || self.steady_counter != analysis.steady.counter()
     }
 

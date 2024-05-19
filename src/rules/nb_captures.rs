@@ -1,4 +1,4 @@
-//! Captures bounds rule.
+//! Number of captures rule.
 //!
 //! A rule to update the known bounds on the number of captures performed by
 //! every piece. Steady pieces never moved, so their bounds are set to (0, 0).
@@ -15,25 +15,25 @@ use crate::Legality::Illegal;
 
 #[derive(Debug)]
 pub struct CapturesBoundsRule {
-    captures_bounds_counter: usize,
+    nb_captures_counter: usize,
     steady_counter: usize,
 }
 
 impl Rule for CapturesBoundsRule {
     fn new() -> Self {
         CapturesBoundsRule {
-            captures_bounds_counter: 0,
+            nb_captures_counter: 0,
             steady_counter: 0,
         }
     }
 
     fn update(&mut self, analysis: &Analysis) {
-        self.captures_bounds_counter = analysis.captures_bounds.counter();
+        self.nb_captures_counter = analysis.nb_captures.counter();
         self.steady_counter = analysis.steady.counter();
     }
 
     fn is_applicable(&self, analysis: &Analysis) -> bool {
-        self.captures_bounds_counter != analysis.captures_bounds.counter()
+        self.nb_captures_counter != analysis.nb_captures.counter()
             || self.steady_counter != analysis.steady.counter()
     }
 
@@ -80,7 +80,7 @@ mod tests {
     use crate::{analysis::Analysis, utils::*};
 
     #[test]
-    fn test_captures_bounds_rule() {
+    fn test_nb_captures_rule() {
         // White is missing 10 pieces, Black is missing 8
         let board = Board::from_str("rnbqkbnr/8/8/8/8/8/8/1NBQKBN1 w - -").expect("Valid Position");
         let mut analysis = Analysis::new(&board);

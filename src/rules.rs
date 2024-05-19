@@ -53,8 +53,8 @@ pub use route_from_origins::*;
 mod route_to_reachable;
 pub use route_to_reachable::*;
 
-mod captures_bounds;
-pub use captures_bounds::*;
+mod nb_captures;
+pub use nb_captures::*;
 
 mod missing;
 pub use missing::*;
