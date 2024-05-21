@@ -1,4 +1,4 @@
-//! Tombs rule.
+//! Captures rule.
 //!
 //! For every pawn, we compute the squares where it must have captured an enemy
 //! piece in its route to its destinies.
@@ -10,10 +10,10 @@ use std::cmp::min;
 use chess::{get_rank, BitBoard, Color, Piece, Rank, Square, EMPTY};
 
 use super::Rule;
-use crate::analysis::Analysis;
+use crate::{analysis::Analysis, utils::common_piece_in_all_squares};
 
 #[derive(Debug)]
-pub struct TombsRule {
+pub struct CapturesRule {
     pawn_capture_distances_counter: usize,
     pawn_forced_captures_counter: usize,
     reachable_from_promotion_counter: usize,
@@ -22,7 +22,7 @@ pub struct TombsRule {
     nb_captures_counter: usize,
 }
 
-impl Rule for TombsRule {
+impl Rule for CapturesRule {
     fn new() -> Self {
         Self {
             pawn_capture_distances_counter: 0,
@@ -59,15 +59,17 @@ impl Rule for TombsRule {
             let mut captures = !EMPTY;
             let mut min_distance = 16;
 
-            for destiny in analysis.destinies(origin) {
-                // TODO: This condition could be more general and instead be : !missing(origin)
-                // Change get_captures doc example to a Queen on C3 instead of a Bishop when
-                // "missing" and non-deterministic rules are supported.
-                let final_piece = if analysis.origins(destiny) == BitBoard::from_square(origin) {
-                    analysis.board.piece_on(destiny)
+            // if the origin-pawn is still on the board and all its destinies contain the
+            // same piece type, that must be the final_piece type
+            let final_piece = {
+                if analysis.is_definitely_on_the_board(origin) {
+                    common_piece_in_all_squares(&analysis.board, analysis.destinies(origin))
                 } else {
                     None
-                };
+                }
+            };
+
+            for destiny in analysis.destinies(origin) {
                 let nb_allowed_captures = analysis.nb_captures_upper_bound(origin) as u32;
                 let (captures_to_destiny, distance_to_destiny) =
                     captures_to_target(analysis, origin, destiny, nb_allowed_captures, final_piece);
