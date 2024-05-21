@@ -77,7 +77,7 @@ impl Rule for TombsRule {
                 }
             }
 
-            for k in 1..finals.len() {
+            for k in 1..=finals.len() {
                 let mut iter = init_iter(finals.len());
                 loop {
                     match find_k_group(k, &origins_of_finals, iter) {

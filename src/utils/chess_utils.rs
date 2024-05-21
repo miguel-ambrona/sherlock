@@ -56,7 +56,7 @@ pub fn square_color(square: Square) -> Color {
 pub fn origin_color(origin: Square) -> Color {
     match origin.get_rank() {
         Rank::First | Rank::Second => Color::White,
-        Rank::Seventh | Rank::Eighth => Color::White,
+        Rank::Seventh | Rank::Eighth => Color::Black,
         _ => panic!("Not an origin square"),
     }
 }

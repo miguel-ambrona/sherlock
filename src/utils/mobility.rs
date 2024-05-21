@@ -107,6 +107,15 @@ impl MobilityGraph {
         !incoming_edges.is_empty()
     }
 
+    /// The squares for which there exists an edge to the given `target`.
+    pub fn predecessors(&self, target: Square) -> BitBoard {
+        let mut neighbors = EMPTY;
+        for node in self.graph.neighbors_directed(self.node(target), Incoming) {
+            neighbors |= BitBoard::from_square(ALL_SQUARES[node.index()]);
+        }
+        neighbors
+    }
+
     /// Makes sure the given node is disconnected from the rest of the graph.
     /// Returns `true` iff this operation modifies the graph.
     #[allow(dead_code)]

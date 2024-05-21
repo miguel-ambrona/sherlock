@@ -64,3 +64,6 @@ pub use captures::*;
 
 mod tombs;
 pub use tombs::*;
+
+mod parity;
+pub use parity::*;
