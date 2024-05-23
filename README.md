@@ -1,4 +1,4 @@
-[![Sherlock Holmes with City Background](/images/sherlock.png "Sherlock")](https://www.freepik.com/pikaso)
+[![Sherlock Holmes](/images/sherlock.png "Sherlock")](https://www.freepik.com/pikaso)
 
 [![Build Status](https://github.com/miguel-ambrona/sherlock-rust/actions/workflows/rust-ci.yml/badge.svg)](https://github.com/miguel-ambrona/sherlock-rust/actions/workflows/rust-ci.yml)
 [![Documentation](https://github.com/miguel-ambrona/sherlock-rust/actions/workflows/rust-docs.yml/badge.svg)](https://github.com/miguel-ambrona/sherlock-rust/actions/workflows/rust-docs.yml)
