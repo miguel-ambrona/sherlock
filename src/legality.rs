@@ -19,6 +19,7 @@ fn init_rules() -> Vec<Box<dyn Rule>> {
         Box::new(MissingRule::new()),
         Box::new(CapturesRule::new()),
         Box::new(TombsRule::new()),
+        Box::new(ParityRule::new()),
     ]
 }
 
