@@ -10,7 +10,7 @@
 use chess::{BitBoard, Board, CastleRights, Piece, ALL_COLORS};
 
 use super::{Analysis, Rule};
-use crate::utils::predecessors;
+use crate::{rules::COLOR_ORIGINS, utils::predecessors};
 
 #[derive(Debug)]
 pub struct SteadyRule {
@@ -53,7 +53,7 @@ fn steady_pieces(board: &Board, steady: &BitBoard) -> BitBoard {
         // steady pieces because they are restricted by other steady pieces
         loop {
             let steady_at_start = steady;
-            for square in *board.color_combined(color) & !steady {
+            for square in *board.color_combined(color) & COLOR_ORIGINS[color.to_index()] & !steady {
                 let piece = board.piece_on(square).unwrap();
                 let preds = predecessors(piece, color, square);
 
