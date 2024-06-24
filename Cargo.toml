@@ -2,9 +2,15 @@
 name = "sherlock"
 version = "0.1.0"
 edition = "2021"
+build = "src/build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+arrayvec = "0.7.2"
 chess = "3.2.0"
+nodrop = "0.1.14"
 petgraph = "0.6.4"
+
+[build-dependencies]
+rand = { version = "0.7.2", default_features = false, features = ["small_rng"] }

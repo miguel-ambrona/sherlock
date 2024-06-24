@@ -1,11 +1,13 @@
 //! Util functions.
 
 use chess::{
-    get_bishop_rays, get_file, get_king_moves, get_knight_moves, get_pawn_attacks, get_pawn_quiets,
-    get_rank, get_rook_rays, BitBoard, Board, Color, Piece, Rank, Square, EMPTY,
+    get_bishop_moves, get_bishop_rays, get_file, get_king_moves, get_knight_moves,
+    get_pawn_attacks, get_pawn_quiets, get_rank, get_rook_moves, get_rook_rays, BitBoard, Board,
+    Color, Piece, Rank, Square, EMPTY,
 };
 
 use super::LIGHT_SQUARES;
+use crate::RetractableBoard;
 
 /// Construct a `BitBoard` out of the given squares.
 #[cfg(test)]
@@ -125,6 +127,31 @@ pub fn common_piece_in_all_squares(board: &Board, squares: BitBoard) -> Option<P
         }
     }
     piece_opt
+}
+
+/// Returns `true` iff the given square is attacked by the given color in the
+/// given board.
+pub fn is_attacked(board: &RetractableBoard, square: Square, color: Color) -> bool {
+    let combined = board.combined();
+    let color_pieces = board.color_combined(color);
+
+    let mut attackers = EMPTY;
+
+    attackers |= get_rook_moves(square, *combined)
+        & (board.pieces(Piece::Rook) | board.pieces(Piece::Queen))
+        & color_pieces;
+
+    attackers |= get_bishop_moves(square, *combined)
+        & (board.pieces(Piece::Bishop) | board.pieces(Piece::Queen))
+        & color_pieces;
+
+    attackers |= get_knight_moves(square) & board.pieces(Piece::Knight) & color_pieces;
+
+    attackers |= get_king_moves(square) & board.pieces(Piece::King) & color_pieces;
+
+    attackers |= get_pawn_attacks(square, !color, board.pieces(Piece::Pawn) & color_pieces);
+
+    attackers != EMPTY
 }
 
 #[cfg(test)]
