@@ -11,6 +11,9 @@ pub const DARK_SQUARES: BitBoard = BitBoard(12273903644374837845);
 /// The light and dark squares of the chess board.
 pub const COLOR_SQUARES: [BitBoard; 2] = [LIGHT_SQUARES, DARK_SQUARES];
 
+/// The 1st and 8th ranks.
+pub const PROMOTION_RANKS: BitBoard = BitBoard(18374686479671623935);
+
 /// The A1 square on the chess board.
 pub const A1: Square = Square::A1;
 

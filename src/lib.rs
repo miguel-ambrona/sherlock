@@ -24,10 +24,11 @@ use utils::origin_color;
 
 mod analysis;
 mod legality;
+mod retractor;
 mod rules;
 mod utils;
 
-pub use crate::{analysis::*, legality::*};
+pub use crate::{analysis::*, legality::*, retractor::*};
 
 impl Analysis {
     /// Tells whether the piece on the given square was classified as steady
