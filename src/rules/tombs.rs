@@ -83,6 +83,10 @@ impl Rule for TombsRule {
                     match find_k_group(k, &origins_of_finals, iter) {
                         None => break,
                         Some((group, remaining)) => {
+                            if group.popcnt() < k as u32 {
+                                analysis.result = Some(Legality::Illegal)
+                            }
+
                             let group_indices = iter & !remaining;
                             iter = remaining;
 
