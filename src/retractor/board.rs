@@ -1,11 +1,13 @@
 use std::{
+    fmt,
     hash::{Hash, Hasher},
     str::FromStr,
 };
 
 use chess::{
     between, get_bishop_rays, get_knight_moves, get_pawn_attacks, get_rook_rays, BitBoard, Board,
-    CastleRights, Color, File, Piece, Square, EMPTY, NUM_COLORS, NUM_PIECES,
+    CastleRights, Color, File, Piece, Rank, Square, ALL_FILES, ALL_RANKS, EMPTY, NUM_COLORS,
+    NUM_PIECES,
 };
 
 use super::{chess_retraction::ChessRetraction, zobrist::Zobrist};
@@ -98,6 +100,79 @@ impl EnPassantFlag {
             EnPassantFlag::Any => Zobrist::ep_any(),
             EnPassantFlag::None => 0,
         }
+    }
+}
+
+impl fmt::Display for RetractableBoard {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut count = 0;
+        for rank in ALL_RANKS.iter().rev() {
+            for file in ALL_FILES.iter() {
+                let square = Square::make_square(*rank, *file);
+
+                if self.piece_on(square).is_some() && count != 0 {
+                    write!(f, "{}", count)?;
+                    count = 0;
+                }
+
+                if let Some(piece) = self.piece_on(square) {
+                    let color = if BitBoard::from_square(square) & self.color_combined(Color::White)
+                        != EMPTY
+                    {
+                        Color::White
+                    } else {
+                        Color::Black
+                    };
+                    write!(f, "{}", piece.to_string(color))?;
+                } else {
+                    count += 1;
+                }
+            }
+
+            if count != 0 {
+                write!(f, "{}", count)?;
+            }
+
+            if *rank != Rank::First {
+                write!(f, "/")?;
+            }
+            count = 0;
+        }
+
+        write!(f, " ")?;
+
+        if self.side_to_move == Color::White {
+            write!(f, "w ")?;
+        } else {
+            write!(f, "b ")?;
+        }
+
+        write!(
+            f,
+            "{}",
+            self.castle_rights[Color::White.to_index()].to_string(Color::White)
+        )?;
+        write!(
+            f,
+            "{}",
+            self.castle_rights[Color::Black.to_index()].to_string(Color::Black)
+        )?;
+        if self.castle_rights[0] == CastleRights::NoRights
+            && self.castle_rights[1] == CastleRights::NoRights
+        {
+            write!(f, "-")?;
+        }
+
+        write!(f, " ")?;
+        if let EnPassantFlag::Some(sq) = self.en_passant {
+            write!(f, "{}", sq)?;
+        } else if self.en_passant == EnPassantFlag::None {
+            write!(f, "-")?;
+        } else {
+            write!(f, "?")?;
+        }
+
+        write!(f, "")
     }
 }
 

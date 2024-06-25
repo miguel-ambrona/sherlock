@@ -588,8 +588,7 @@ fn write_bitboard(f: &mut fmt::Formatter, name: String, bitboard: BitBoard) -> f
 
 impl fmt::Display for Analysis {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // TODO: Implement to_fen for `RetractableBoard`?
-        // writeln!(f, "FEN: {}", self.board,)?;
+        writeln!(f, "FEN: {}", self.board,)?;
         writeln!(f, "\nsteady (cnt: {}):\n", self.origins.counter())?;
         write_bitboard(f, String::from("steady"), self.steady.value)?;
         writeln!(f, "\norigins (cnt: {}):\n", self.origins.counter())?;
