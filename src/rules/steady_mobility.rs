@@ -61,17 +61,18 @@ impl Rule for SteadyMobilityRule {
 #[cfg(test)]
 mod tests {
 
-    use chess::{get_rank, Board, Color::*, Piece::*, Rank};
+    use chess::{get_rank, Color::*, Piece::*, Rank};
 
     use super::*;
     use crate::{
         rules::{distance_to_target, MobilityRule, OriginsRule},
         utils::*,
+        RetractableBoard,
     };
 
     #[test]
     fn test_steady_pieces() {
-        let mut analysis = Analysis::new(&Board::default());
+        let mut analysis = Analysis::new(&RetractableBoard::default());
         OriginsRule::new().apply(&mut analysis);
         MobilityRule::new().apply(&mut analysis);
         SteadyMobilityRule::new().apply(&mut analysis);
@@ -98,7 +99,7 @@ mod tests {
 
     #[test]
     fn test_steady_king() {
-        let mut analysis = Analysis::new(&Board::default());
+        let mut analysis = Analysis::new(&RetractableBoard::default());
         OriginsRule::new().apply(&mut analysis);
 
         // learn that the black king is steady

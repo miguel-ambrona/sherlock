@@ -1,6 +1,6 @@
 use chess::Board;
 
-use crate::{analysis::Analysis, rules::*, Legality::Illegal};
+use crate::{analysis::Analysis, rules::*, Legality::Illegal, RetractableBoard};
 
 /// Initialize all the available rules.
 fn init_rules() -> Vec<Box<dyn Rule>> {
@@ -28,13 +28,13 @@ fn init_rules() -> Vec<Box<dyn Rule>> {
 /// position.
 /// ```
 /// use chess::{Board, Square};
-/// use sherlock::analyze;
+/// use sherlock::{analyze, RetractableBoard};
 ///
-/// let analysis = analyze(&Board::default());
+/// let analysis = analyze(&RetractableBoard::default());
 /// assert_eq!(analysis.is_steady(Square::D1), true);
 /// assert_eq!(analysis.is_steady(Square::B1), false);
 /// ```
-pub fn analyze(board: &Board) -> Analysis {
+pub fn analyze(board: &RetractableBoard) -> Analysis {
     let mut rules = init_rules();
     let mut analysis = Analysis::new(board);
     loop {
@@ -69,6 +69,6 @@ pub fn analyze(board: &Board) -> Analysis {
 /// assert!(is_legal(&board));
 /// ```
 pub fn is_legal(board: &Board) -> bool {
-    let analysis = analyze(board);
+    let analysis = analyze(&(*board).into());
     analysis.result != Some(Illegal)
 }

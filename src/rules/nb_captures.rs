@@ -72,17 +72,17 @@ impl Rule for CapturesBoundsRule {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
 
-    use chess::{Board, Square};
+    use chess::Square;
 
     use super::*;
-    use crate::{analysis::Analysis, utils::*};
+    use crate::{analysis::Analysis, utils::*, RetractableBoard};
 
     #[test]
     fn test_nb_captures_rule() {
         // White is missing 10 pieces, Black is missing 8
-        let board = Board::from_str("rnbqkbnr/8/8/8/8/8/8/1NBQKBN1 w - -").expect("Valid Position");
+        let board = RetractableBoard::from_fen("rnbqkbnr/8/8/8/8/8/8/1NBQKBN1 w - -")
+            .expect("Valid Position");
         let mut analysis = Analysis::new(&board);
         let captures_rule = CapturesBoundsRule::new();
 

@@ -49,7 +49,7 @@ impl Analysis {
     ///
     /// let board =
     ///     Board::from_str("2bqkb2/1ppppp2/8/8/8/8/1PPPPPP1/2BQKB2 w - -").expect("Valid Position");
-    /// let analysis = analyze(&board);
+    /// let analysis = analyze(&board.into());
     ///
     /// // The white queen cannot possibly have moved, unlike the black queen
     /// assert_eq!(analysis.is_steady(Square::D1), true);
@@ -92,7 +92,7 @@ impl Analysis {
     ///
     /// let board = Board::from_str("r1bqkbnr/p1pppppp/1p6/R7/4N3/8/1PPPP1PP/2BQKB1R w - -")
     ///     .expect("Valid Position");
-    /// let analysis = analyze(&board);
+    /// let analysis = analyze(&board.into());
     ///
     /// // The piece on E4 (a white knight) may have started the game on B1 or G1, but
     /// // it can also be the A2-pawn promoted (not the F2 pawn, who could not promote)
@@ -135,7 +135,7 @@ impl Analysis {
     ///
     /// let board = Board::from_str("r2qkb1r/ppp1pppp/8/7n/b2P4/8/PPPPP1PP/RNBQKBNR b KQkq -")
     ///     .expect("Valid Position");
-    /// let analysis = analyze(&board);
+    /// let analysis = analyze(&board.into());
     ///
     /// // The white pawn on D4 must come from F2 (capturing on E3 and D4)
     /// assert_eq!(
@@ -179,7 +179,7 @@ impl Analysis {
     ///
     /// let board = Board::from_str("r1b1kb1r/pp1ppppp/2p5/8/8/8/PP1PPPPP/RNQQKBNR w KQkq -")
     ///     .expect("Valid Position");
-    /// let analysis = analyze(&board);
+    /// let analysis = analyze(&board.into());
     ///
     /// // The C2-pawn has certainly promoted (it is now one of the White queens), in order to do so
     /// // it must have captured on C7 and B8 (not D8, as it would have given check to a king that

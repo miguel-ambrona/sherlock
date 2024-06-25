@@ -67,17 +67,16 @@ impl Rule for PawnOn3rdRankRule {
 #[cfg(test)]
 mod tests {
 
-    use std::str::FromStr;
-
-    use chess::{BitBoard, Board, Color::*, Piece::*};
+    use chess::{BitBoard, Color::*, Piece::*};
 
     use super::*;
-    use crate::utils::*;
+    use crate::{utils::*, RetractableBoard};
 
     #[test]
     fn test_pawn_on_3rd_rank() {
-        let board = Board::from_str("rnbqkbnr/pppppppp/8/8/8/2P5/P1PPPPPP/RNBQKBNR w KQkq -")
-            .expect("Valid Position");
+        let board =
+            RetractableBoard::from_fen("rnbqkbnr/pppppppp/8/8/8/2P5/P1PPPPPP/RNBQKBNR w KQkq -")
+                .expect("Valid Position");
         let mut analysis = Analysis::new(&board);
 
         let pawn_on_3rd_rank = PawnOn3rdRankRule::new();

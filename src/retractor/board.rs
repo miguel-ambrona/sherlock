@@ -1,4 +1,7 @@
-use std::hash::{Hash, Hasher};
+use std::{
+    hash::{Hash, Hasher},
+    str::FromStr,
+};
 
 use chess::{
     between, get_bishop_rays, get_knight_moves, get_pawn_attacks, get_rook_rays, BitBoard, Board,
@@ -66,6 +69,12 @@ impl From<Board> for RetractableBoard {
     }
 }
 
+impl Default for RetractableBoard {
+    fn default() -> Self {
+        Board::default().into()
+    }
+}
+
 impl Hash for RetractableBoard {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.hash.hash(state);
@@ -93,6 +102,11 @@ impl EnPassantFlag {
 }
 
 impl RetractableBoard {
+    /// Create a `RetractableBoard` from a FEN string.
+    pub fn from_fen(fen: &str) -> Result<RetractableBoard, chess::Error> {
+        Board::from_str(fen).map(|board| board.into())
+    }
+
     /// A `BitBoard` with all the pieces of the given type (and both colors).
     pub fn pieces(&self, piece: Piece) -> &BitBoard {
         unsafe { self.pieces.get_unchecked(piece.to_index()) }
@@ -307,9 +321,6 @@ impl RetractableBoard {
         result
     }
 }
-
-#[cfg(test)]
-use std::str::FromStr;
 
 #[cfg(test)]
 use crate::utils::*;
