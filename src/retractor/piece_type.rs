@@ -528,7 +528,7 @@ impl PieceType for KingType {
 
         // We may uncastle iff:
         //  * we are at an after-castle position
-        //  * the squares between the king and future rook are empty
+        //  * the squares between the king and future rook (inclusive) are empty
         //  * the current rook square is not attacked
         //  * the future king square is not attacked
         //  * the future rook will not check the opponent after uncastle
@@ -537,11 +537,12 @@ impl PieceType for KingType {
             let my_rooks = my_pieces & board.pieces(Piece::Rook);
             // short uncastle
             if src.get_file() == File::G
-                && BitBoard::from_square(src.uleft()) & my_rooks != EMPTY
-                && BitBoard::from_square(src.uright()) & my_pieces == EMPTY
-                && !is_attacked(board, src.uleft(), !retracting_color)
-                && !is_attacked(board, src.uleft().uleft(), !retracting_color)
-                && get_rook_moves(opp_ksq, *combined) & BitBoard::from_square(src.uright()) == EMPTY
+                && BitBoard::from_square(src.uleft()) & my_rooks != EMPTY // F
+                && BitBoard::from_square(src.uleft().uleft()) & combined == EMPTY // E
+                && BitBoard::from_square(src.uright()) & combined == EMPTY // H
+                && !is_attacked(board, src.uleft(), !retracting_color) // F
+                && !is_attacked(board, src.uleft().uleft(), !retracting_color) // E
+                && get_rook_moves(opp_ksq, *combined) & BitBoard::from_square(src.uright()) == EMPTY // H
                 && (T::NB_CHECKERS == 0
                     || board.checkers() & BitBoard::from_square(src.uleft()) != EMPTY)
             {
@@ -556,13 +557,14 @@ impl PieceType for KingType {
             }
             // long uncastle
             else if src.get_file() == File::C
-                && BitBoard::from_square(src.uright()) & my_rooks != EMPTY
-                && BitBoard::from_square(src.uleft()) & my_pieces == EMPTY
-                && BitBoard::from_square(src.uleft().uleft()) & my_pieces == EMPTY
-                && !is_attacked(board, src.uright(), board.side_to_move())
-                && !is_attacked(board, src.uright().uright(), board.side_to_move())
+                && BitBoard::from_square(src.uright()) & my_rooks != EMPTY // D
+                && BitBoard::from_square(src.uright().uright()) & combined == EMPTY // E
+                && BitBoard::from_square(src.uleft()) & combined == EMPTY // B
+                && BitBoard::from_square(src.uleft().uleft()) & combined == EMPTY // A
+                && !is_attacked(board, src.uright(), board.side_to_move()) // D
+                && !is_attacked(board, src.uright().uright(), board.side_to_move()) // E
                 && get_rook_moves(opp_ksq, *combined) & BitBoard::from_square(src.uleft().uleft())
-                    == EMPTY
+                    == EMPTY // A
                 && (T::NB_CHECKERS == 0
                     || board.checkers() & BitBoard::from_square(src.uright()) != EMPTY)
             {
