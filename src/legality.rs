@@ -43,7 +43,6 @@ pub fn analyze(board: &RetractableBoard) -> Analysis {
         let mut progress = false;
         for rule in rules.iter_mut() {
             if rule.is_applicable(&analysis) && analysis.result.is_none() {
-                println!("{:?}", rule);
                 rule.update(&analysis);
                 progress |= rule.apply(&mut analysis);
             }
