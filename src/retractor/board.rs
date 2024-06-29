@@ -283,6 +283,16 @@ impl RetractableBoard {
         }
     }
 
+    /// Flip the turn. The en-passant flag is set to [EnPassantFlag::Any].
+    pub fn flip(&mut self) {
+        if self.en_passant != EnPassantFlag::Any {
+            self.hash ^= self.en_passant.zobrist(self.side_to_move) ^ Zobrist::ep_any();
+            self.en_passant = EnPassantFlag::Any;
+        }
+        self.side_to_move = !self.side_to_move;
+        self.hash ^= Zobrist::color();
+    }
+
     /// Apply a chess retraction to the given board, creating a new board.
     #[inline]
     pub fn make_retraction_new(&self, r: ChessRetraction) -> RetractableBoard {
