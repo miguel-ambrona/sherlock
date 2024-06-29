@@ -261,6 +261,67 @@ impl RetractionGen {
 
         retraction_list
     }
+
+    /// Returns `true` iff any of the following conditions holds:
+    ///  - A player is in check.
+    ///  - The player to retract does not have officer retractions.
+    ///  - The player to move would only have officer retractions if they were
+    ///    to retract.
+    #[inline(always)]
+    pub fn is_limited_in_retractions(board: &RetractableBoard) -> bool {
+        if board.checkers() != &EMPTY {
+            return true;
+        }
+
+        if let EnPassantFlag::Some(_) = board.en_passant() {
+            return true;
+        }
+
+        let mut retraction_list = NoDrop::new(ArrayVec::<SourceAndTargets, BUFFER_SIZE>::new());
+        let mask = !board.color_combined(board.side_to_move());
+        KnightType::legals::<NotInCheck>(&mut retraction_list, board, mask);
+        BishopType::legals::<NotInCheck>(&mut retraction_list, board, mask);
+        RookType::legals::<NotInCheck>(&mut retraction_list, board, mask);
+        QueenType::legals::<NotInCheck>(&mut retraction_list, board, mask);
+        KingType::legals::<NotInCheck>(&mut retraction_list, board, mask);
+
+        let mut iterator = RetractionGen {
+            retractions: retraction_list,
+            index: 0,
+            targets_mask: !EMPTY,
+            uncaptured_candidates: uncaptured_candidates(board),
+            uncaptured_index: 0,
+        };
+
+        if iterator.next().is_none() {
+            return true;
+        }
+
+        let mut flipped = *board;
+        flipped.flip();
+
+        let mut retraction_list = NoDrop::new(ArrayVec::<SourceAndTargets, BUFFER_SIZE>::new());
+        let mask = !flipped.color_combined(flipped.side_to_move());
+        KnightType::legals::<NotInCheck>(&mut retraction_list, &flipped, mask);
+        BishopType::legals::<NotInCheck>(&mut retraction_list, &flipped, mask);
+        RookType::legals::<NotInCheck>(&mut retraction_list, &flipped, mask);
+        QueenType::legals::<NotInCheck>(&mut retraction_list, &flipped, mask);
+        KingType::legals::<NotInCheck>(&mut retraction_list, &flipped, mask);
+
+        let mut iterator = RetractionGen {
+            retractions: retraction_list,
+            index: 0,
+            targets_mask: !EMPTY,
+            uncaptured_candidates: uncaptured_candidates(&flipped),
+            uncaptured_index: 0,
+        };
+
+        if iterator.next().is_none() {
+            return true;
+        }
+
+        false
+    }
 }
 
 impl Iterator for RetractionGen {
