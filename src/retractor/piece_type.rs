@@ -266,10 +266,12 @@ impl PieceType for PawnType {
             Color::Black => get_rank(Rank::Third),
         };
         for src in ep_rank & pieces {
-            if BitBoard::from_square(src.uforward(retracting_color)) & combined != EMPTY {
+            let reappearing_pawn_square = src.ubackward(retracting_color);
+            if BitBoard::from_square(src.uforward(retracting_color)) & combined != EMPTY
+                || BitBoard::from_square(reappearing_pawn_square) & combined != EMPTY
+            {
                 continue;
             }
-            let reappearing_pawn_square = src.ubackward(retracting_color);
             let mut targets = get_adjacent_files(src.get_file())
                 & get_rank(reappearing_pawn_square.get_rank())
                 & !combined
