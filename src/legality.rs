@@ -1,6 +1,8 @@
+use std::collections::HashMap;
+
 use chess::Board;
 
-use crate::{analysis::Analysis, rules::*, Legality::Illegal, RetractableBoard};
+use crate::{analysis::Analysis, rules::*, Legality::Illegal, RetractableBoard, RetractionGen};
 
 /// Initialize all the available rules.
 fn init_rules() -> Vec<Box<dyn Rule>> {
@@ -53,6 +55,42 @@ pub fn analyze(board: &RetractableBoard) -> Analysis {
     analysis
 }
 
+/// If the position is illegal, it returns `false`. Otherwise, if the position
+/// is [limited in retractions](RetractionGen::is_limited_in_retractions), it
+/// retracts it in all possible ways and recurses.
+fn is_retractable(table: &mut HashMap<RetractableBoard, bool>, board: &RetractableBoard) -> bool {
+    if let Some(b) = table.get(board) {
+        return *b;
+    };
+
+    let analysis = analyze(board);
+    if analysis.result == Some(Illegal) {
+        return false;
+    } else if !RetractionGen::is_limited_in_retractions(board) {
+        return true;
+    }
+
+    // add the position to the table as "false" to avoid infinite-loops, we will
+    // correct this when the analysis is over
+    table.insert(*board, false);
+    let mut res = false;
+
+    let mut retractions = RetractionGen::new_legal(board);
+    retractions.refine_iterator(&analysis);
+    for r in retractions {
+        let new_board = board.make_retraction_new(r);
+        if is_retractable(table, &new_board) {
+            res = true;
+            break;
+        }
+    }
+
+    if res {
+        table.insert(*board, res);
+    }
+    res
+}
+
 /// Checks whether the given `Board` is *legal*, i.e. reachable from the
 /// starting chess position via a sequence of legal moves.
 ///
@@ -69,6 +107,6 @@ pub fn analyze(board: &RetractableBoard) -> Analysis {
 /// assert!(is_legal(&board));
 /// ```
 pub fn is_legal(board: &Board) -> bool {
-    let analysis = analyze(&(*board).into());
-    analysis.result != Some(Illegal)
+    let mut table = HashMap::<RetractableBoard, bool>::new();
+    is_retractable(&mut table, &(*board).into())
 }
