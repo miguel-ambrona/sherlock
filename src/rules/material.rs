@@ -2,13 +2,14 @@
 
 use std::cmp::max;
 
-use chess::{Board, ALL_COLORS};
+use chess::{Piece, ALL_COLORS};
 
 use super::Rule;
 use crate::{
     analysis::Analysis,
-    utils::{bishops, knights, pawns, queens, rooks, DARK_SQUARES, LIGHT_SQUARES},
+    utils::{DARK_SQUARES, LIGHT_SQUARES},
     Legality::Illegal,
+    RetractableBoard,
 };
 
 /// A rule that performs a simple check on the position material,
@@ -48,15 +49,19 @@ impl Rule for MaterialRule {
 /// Returns `true` iff the given board contains an amount of material that is
 /// impossible to reach in a legal game.
 #[inline]
-pub fn illegal_material(board: &Board) -> bool {
+pub fn illegal_material(board: &RetractableBoard) -> bool {
     for color in ALL_COLORS {
-        let bishops = bishops(board, color);
-        let lower_bound_promoted = max(0, knights(board, color).popcnt() as i32 - 2)
+        let pawns = board.pieces(Piece::Pawn) & board.color_combined(color);
+        let knights = board.pieces(Piece::Knight) & board.color_combined(color);
+        let bishops = board.pieces(Piece::Bishop) & board.color_combined(color);
+        let rooks = board.pieces(Piece::Rook) & board.color_combined(color);
+        let queens = board.pieces(Piece::Queen) & board.color_combined(color);
+        let lower_bound_promoted = max(0, knights.popcnt() as i32 - 2)
             + max(0, (bishops & LIGHT_SQUARES).popcnt() as i32 - 1)
             + max(0, (bishops & DARK_SQUARES).popcnt() as i32 - 1)
-            + max(0, rooks(board, color).popcnt() as i32 - 2)
-            + max(0, queens(board, color).popcnt() as i32 - 1);
-        if 8 - (pawns(board, color).popcnt() as i32) < lower_bound_promoted {
+            + max(0, rooks.popcnt() as i32 - 2)
+            + max(0, queens.popcnt() as i32 - 1);
+        if 8 - (pawns.popcnt() as i32) < lower_bound_promoted {
             return true;
         }
     }
@@ -65,8 +70,6 @@ pub fn illegal_material(board: &Board) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
     use super::*;
 
     #[test]
@@ -84,7 +87,7 @@ mod tests {
         ]
         .iter()
         .for_each(|(fen, expected)| {
-            let board = Board::from_str(fen).expect("Valid Position");
+            let board = RetractableBoard::from_fen(fen).expect("Valid Position");
             assert_eq!(illegal_material(&board), *expected);
         })
     }

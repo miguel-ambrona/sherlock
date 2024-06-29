@@ -1,8 +1,13 @@
-use std::hash::{Hash, Hasher};
+use std::{
+    fmt,
+    hash::{Hash, Hasher},
+    str::FromStr,
+};
 
 use chess::{
     between, get_bishop_rays, get_knight_moves, get_pawn_attacks, get_rook_rays, BitBoard, Board,
-    CastleRights, Color, File, Piece, Square, EMPTY, NUM_COLORS, NUM_PIECES,
+    CastleRights, Color, File, Piece, Rank, Square, ALL_FILES, ALL_RANKS, EMPTY, NUM_COLORS,
+    NUM_PIECES,
 };
 
 use super::{chess_retraction::ChessRetraction, zobrist::Zobrist};
@@ -66,6 +71,12 @@ impl From<Board> for RetractableBoard {
     }
 }
 
+impl Default for RetractableBoard {
+    fn default() -> Self {
+        Board::default().into()
+    }
+}
+
 impl Hash for RetractableBoard {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.hash.hash(state);
@@ -92,7 +103,85 @@ impl EnPassantFlag {
     }
 }
 
+impl fmt::Display for RetractableBoard {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut count = 0;
+        for rank in ALL_RANKS.iter().rev() {
+            for file in ALL_FILES.iter() {
+                let square = Square::make_square(*rank, *file);
+
+                if self.piece_on(square).is_some() && count != 0 {
+                    write!(f, "{}", count)?;
+                    count = 0;
+                }
+
+                if let Some(piece) = self.piece_on(square) {
+                    let color = if BitBoard::from_square(square) & self.color_combined(Color::White)
+                        != EMPTY
+                    {
+                        Color::White
+                    } else {
+                        Color::Black
+                    };
+                    write!(f, "{}", piece.to_string(color))?;
+                } else {
+                    count += 1;
+                }
+            }
+
+            if count != 0 {
+                write!(f, "{}", count)?;
+            }
+
+            if *rank != Rank::First {
+                write!(f, "/")?;
+            }
+            count = 0;
+        }
+
+        write!(f, " ")?;
+
+        if self.side_to_move == Color::White {
+            write!(f, "w ")?;
+        } else {
+            write!(f, "b ")?;
+        }
+
+        write!(
+            f,
+            "{}",
+            self.castle_rights[Color::White.to_index()].to_string(Color::White)
+        )?;
+        write!(
+            f,
+            "{}",
+            self.castle_rights[Color::Black.to_index()].to_string(Color::Black)
+        )?;
+        if self.castle_rights[0] == CastleRights::NoRights
+            && self.castle_rights[1] == CastleRights::NoRights
+        {
+            write!(f, "-")?;
+        }
+
+        write!(f, " ")?;
+        if let EnPassantFlag::Some(sq) = self.en_passant {
+            write!(f, "{}", sq)?;
+        } else if self.en_passant == EnPassantFlag::None {
+            write!(f, "-")?;
+        } else {
+            write!(f, "?")?;
+        }
+
+        write!(f, "")
+    }
+}
+
 impl RetractableBoard {
+    /// Create a `RetractableBoard` from a FEN string.
+    pub fn from_fen(fen: &str) -> Result<RetractableBoard, chess::Error> {
+        Board::from_str(fen).map(|board| board.into())
+    }
+
     /// A `BitBoard` with all the pieces of the given type (and both colors).
     pub fn pieces(&self, piece: Piece) -> &BitBoard {
         unsafe { self.pieces.get_unchecked(piece.to_index()) }
@@ -192,6 +281,16 @@ impl RetractableBoard {
                 self.hash ^= Zobrist::piece(piece, square, color);
             }
         }
+    }
+
+    /// Flip the turn. The en-passant flag is set to [EnPassantFlag::Any].
+    pub fn flip(&mut self) {
+        if self.en_passant != EnPassantFlag::Any {
+            self.hash ^= self.en_passant.zobrist(self.side_to_move) ^ Zobrist::ep_any();
+            self.en_passant = EnPassantFlag::Any;
+        }
+        self.side_to_move = !self.side_to_move;
+        self.hash ^= Zobrist::color();
     }
 
     /// Apply a chess retraction to the given board, creating a new board.
@@ -307,9 +406,6 @@ impl RetractableBoard {
         result
     }
 }
-
-#[cfg(test)]
-use std::str::FromStr;
 
 #[cfg(test)]
 use crate::utils::*;

@@ -9,6 +9,7 @@ use chess::{
 use crate::{
     rules::ALL_ORIGINS,
     utils::{prom_index, MobilityGraph, UncertainSet},
+    RetractableBoard,
 };
 
 pub(crate) struct Counter<T> {
@@ -49,7 +50,7 @@ pub enum Error {
 /// legality of the position of interest.
 pub struct Analysis {
     /// The position being analyzed.
-    pub(crate) board: Board,
+    pub(crate) board: RetractableBoard,
 
     /// A set of squares of steady pieces (that have certainly never moved and
     /// are still on their starting square).
@@ -163,7 +164,7 @@ pub struct Analysis {
 
 impl Analysis {
     /// Initializes a legality analysis for the given board.
-    pub fn new(board: &Board) -> Self {
+    pub fn new(board: &RetractableBoard) -> Self {
         Analysis {
             board: *board,
             steady: Counter::new(EMPTY),

@@ -1,7 +1,7 @@
 use std::cmp::max;
 
 use arrayvec::ArrayVec;
-use chess::{get_file, get_rank, BitBoard, Piece, Square, EMPTY};
+use chess::{get_file, get_rank, BitBoard, Piece, Square, ALL_SQUARES, EMPTY};
 use nodrop::NoDrop;
 
 use super::{
@@ -12,8 +12,9 @@ use super::{
     },
 };
 use crate::{
+    rules::{origins_of_piece_on, COLOR_ORIGINS},
     utils::{DARK_SQUARES, LIGHT_SQUARES, PROMOTION_RANKS},
-    EnPassantFlag, RetractableBoard,
+    Analysis, EnPassantFlag, RetractableBoard,
 };
 
 /// The kind of uncapture of a [SourceAndTargets] object, specifying whether the
@@ -172,13 +173,48 @@ impl RetractionGen {
     /// retractions, i.e. retractions that do not leave the king of the
     /// non-retracting player in check.
     #[inline(always)]
-    pub fn new_legal(board: &RetractableBoard) -> RetractionGen {
+    pub fn new_legal(board: &RetractableBoard) -> Self {
         RetractionGen {
             retractions: RetractionGen::enumerate_retractions(board),
             index: 0,
             targets_mask: !EMPTY,
             uncaptured_candidates: uncaptured_candidates(board),
             uncaptured_index: 0,
+        }
+    }
+
+    /// Refines the iterator on moves with the information provided from the
+    /// board `Analysis`.
+    /// TODO: Can we do better? ATM this routine is very simple.
+    #[inline(always)]
+    pub fn refine_iterator(&mut self, analysis: &Analysis) {
+        // Only the pieces of the side to move matter.
+        let color = analysis.board.side_to_move();
+        for (i, uncaptured_piece) in UNCAPTURES.iter().enumerate() {
+            if let Some(piece) = uncaptured_piece {
+                let mut piece_uncaptured = EMPTY;
+                for square in ALL_SQUARES {
+                    if analysis.missing(color).all() & origins_of_piece_on(*piece, square) != EMPTY
+                    {
+                        piece_uncaptured ^= BitBoard::from_square(square);
+                    }
+                }
+                self.uncaptured_candidates[i] &= piece_uncaptured;
+            }
+        }
+
+        let mut captures = EMPTY;
+        let mut nb_captures = 0;
+        for origin in COLOR_ORIGINS[(!color).to_index()] {
+            let tombs = analysis.captures(origin);
+            nb_captures += tombs.popcnt();
+            captures |= tombs;
+        }
+
+        if nb_captures == analysis.missing(color).size() {
+            for i in 1..NUM_UNCAPTURES {
+                self.uncaptured_candidates[i] &= captures;
+            }
         }
     }
 
@@ -224,6 +260,67 @@ impl RetractionGen {
         }
 
         retraction_list
+    }
+
+    /// Returns `true` iff any of the following conditions holds:
+    ///  - A player is in check.
+    ///  - The player to retract does not have officer retractions.
+    ///  - The player to move would only have officer retractions if they were
+    ///    to retract.
+    #[inline(always)]
+    pub fn is_limited_in_retractions(board: &RetractableBoard) -> bool {
+        if board.checkers() != &EMPTY {
+            return true;
+        }
+
+        if let EnPassantFlag::Some(_) = board.en_passant() {
+            return true;
+        }
+
+        let mut retraction_list = NoDrop::new(ArrayVec::<SourceAndTargets, BUFFER_SIZE>::new());
+        let mask = !board.color_combined(board.side_to_move());
+        KnightType::legals::<NotInCheck>(&mut retraction_list, board, mask);
+        BishopType::legals::<NotInCheck>(&mut retraction_list, board, mask);
+        RookType::legals::<NotInCheck>(&mut retraction_list, board, mask);
+        QueenType::legals::<NotInCheck>(&mut retraction_list, board, mask);
+        KingType::legals::<NotInCheck>(&mut retraction_list, board, mask);
+
+        let mut iterator = RetractionGen {
+            retractions: retraction_list,
+            index: 0,
+            targets_mask: !EMPTY,
+            uncaptured_candidates: uncaptured_candidates(board),
+            uncaptured_index: 0,
+        };
+
+        if iterator.next().is_none() {
+            return true;
+        }
+
+        let mut flipped = *board;
+        flipped.flip();
+
+        let mut retraction_list = NoDrop::new(ArrayVec::<SourceAndTargets, BUFFER_SIZE>::new());
+        let mask = !flipped.color_combined(flipped.side_to_move());
+        KnightType::legals::<NotInCheck>(&mut retraction_list, &flipped, mask);
+        BishopType::legals::<NotInCheck>(&mut retraction_list, &flipped, mask);
+        RookType::legals::<NotInCheck>(&mut retraction_list, &flipped, mask);
+        QueenType::legals::<NotInCheck>(&mut retraction_list, &flipped, mask);
+        KingType::legals::<NotInCheck>(&mut retraction_list, &flipped, mask);
+
+        let mut iterator = RetractionGen {
+            retractions: retraction_list,
+            index: 0,
+            targets_mask: !EMPTY,
+            uncaptured_candidates: uncaptured_candidates(&flipped),
+            uncaptured_index: 0,
+        };
+
+        if iterator.next().is_none() {
+            return true;
+        }
+
+        false
     }
 }
 

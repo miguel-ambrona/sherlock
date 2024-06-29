@@ -145,11 +145,11 @@ fn path_parity(analysis: &Analysis, origin: Square, target: Square) -> Option<u3
 mod tests {
 
     use super::*;
-    use crate::utils::*;
+    use crate::{utils::*, RetractableBoard};
 
     #[test]
     fn test_path_parity() {
-        let mut analysis = Analysis::new(&Board::default());
+        let mut analysis = Analysis::new(&RetractableBoard::default());
 
         // white pawns
         assert_eq!(path_parity(&analysis, C2, C3), Some(1));

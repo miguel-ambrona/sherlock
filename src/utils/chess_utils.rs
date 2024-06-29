@@ -2,8 +2,8 @@
 
 use chess::{
     get_bishop_moves, get_bishop_rays, get_file, get_king_moves, get_knight_moves,
-    get_pawn_attacks, get_pawn_quiets, get_rank, get_rook_moves, get_rook_rays, BitBoard, Board,
-    Color, Piece, Rank, Square, EMPTY,
+    get_pawn_attacks, get_pawn_quiets, get_rank, get_rook_moves, get_rook_rays, BitBoard, Color,
+    Piece, Rank, Square, EMPTY,
 };
 
 use super::LIGHT_SQUARES;
@@ -15,36 +15,6 @@ pub(crate) fn bitboard_of_squares(squares: &[Square]) -> BitBoard {
     squares
         .iter()
         .fold(EMPTY, |acc, s| acc | BitBoard::from_square(*s))
-}
-
-/// A `BitBoard` with the pawns of the given color.
-#[inline]
-pub fn pawns(board: &Board, color: Color) -> BitBoard {
-    board.pieces(Piece::Pawn) & board.color_combined(color)
-}
-
-/// A `BitBoard` with the knights of the given color.
-#[inline]
-pub fn knights(board: &Board, color: Color) -> BitBoard {
-    board.pieces(Piece::Knight) & board.color_combined(color)
-}
-
-/// A `BitBoard` with the bishops of the given color.
-#[inline]
-pub fn bishops(board: &Board, color: Color) -> BitBoard {
-    board.pieces(Piece::Bishop) & board.color_combined(color)
-}
-
-/// A `BitBoard` with the rooks of the given color.
-#[inline]
-pub fn rooks(board: &Board, color: Color) -> BitBoard {
-    board.pieces(Piece::Rook) & board.color_combined(color)
-}
-
-/// A `BitBoard` with the queens of the given color.
-#[inline]
-pub fn queens(board: &Board, color: Color) -> BitBoard {
-    board.pieces(Piece::Queen) & board.color_combined(color)
 }
 
 #[inline]
@@ -116,7 +86,7 @@ pub fn checking_predecessors(piece: Piece, color: Color, square: Square) -> BitB
 
 /// Returns `Some piece` iff all the given squares contain a piece of type
 /// `piece`. Returns `None` otherwise.
-pub fn common_piece_in_all_squares(board: &Board, squares: BitBoard) -> Option<Piece> {
+pub fn common_piece_in_all_squares(board: &RetractableBoard, squares: BitBoard) -> Option<Piece> {
     if squares == EMPTY {
         return None;
     }

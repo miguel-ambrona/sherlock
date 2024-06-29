@@ -53,7 +53,7 @@ impl Rule for OriginsRule {
 /// The candidate squares from which a piece of the given type which is
 /// currently on the given square may have started the game.
 #[inline]
-fn origins_of_piece_on(piece: Piece, square: Square) -> BitBoard {
+pub fn origins_of_piece_on(piece: Piece, square: Square) -> BitBoard {
     match piece {
         Piece::King => KING_ORIGINS,
         Piece::Queen => QUEEN_ORIGINS,

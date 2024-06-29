@@ -118,18 +118,18 @@ pub fn distance_from_origin(
 
 #[cfg(test)]
 mod tests {
-    use chess::{Board, Color::*, Piece::*};
+    use chess::{Color::*, Piece::*};
 
     use super::*;
     use crate::{
         rules::{MobilityRule, OriginsRule},
         utils::*,
-        Analysis,
+        Analysis, RetractableBoard,
     };
 
     #[test]
     fn test_distance_from_origin() {
-        let mut analysis = Analysis::new(&Board::default());
+        let mut analysis = Analysis::new(&RetractableBoard::default());
         OriginsRule::new().apply(&mut analysis);
         MobilityRule::new().apply(&mut analysis);
 

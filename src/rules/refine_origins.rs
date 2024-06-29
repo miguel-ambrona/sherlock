@@ -66,14 +66,14 @@ impl Rule for RefineOriginsRule {
 #[cfg(test)]
 mod tests {
 
-    use chess::{Board, EMPTY};
+    use chess::EMPTY;
 
     use super::*;
-    use crate::utils::*;
+    use crate::{utils::*, RetractableBoard};
 
     #[test]
     fn test_refine_origins_rule() {
-        let mut analysis = Analysis::new(&Board::default());
+        let mut analysis = Analysis::new(&RetractableBoard::default());
         let destinies_rule = RefineOriginsRule::new();
 
         destinies_rule.apply(&mut analysis);

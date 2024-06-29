@@ -7,10 +7,10 @@
 //! pawns on their relative 2nd rank are steady, thus a white bishop on c1 is
 //! steady if there are white pawns on b2 and d2).
 
-use chess::{BitBoard, Board, CastleRights, Piece, ALL_COLORS};
+use chess::{BitBoard, CastleRights, Piece, ALL_COLORS};
 
 use super::{Analysis, Rule};
-use crate::{rules::COLOR_ORIGINS, utils::predecessors};
+use crate::{rules::COLOR_ORIGINS, utils::predecessors, RetractableBoard};
 
 #[derive(Debug)]
 pub struct SteadyRule {
@@ -39,8 +39,9 @@ impl Rule for SteadyRule {
 /// Gets a `Board`` and a `BitBoard` containing the information on squares
 /// assumed to contain steady pieces, it returns an updated `BitBoard` of steady
 /// pieces.
-fn steady_pieces(board: &Board, steady: &BitBoard) -> BitBoard {
-    debug_assert!(board.is_sane());
+fn steady_pieces(board: &RetractableBoard, steady: &BitBoard) -> BitBoard {
+    // TODO: implement is_sane for `RetractableBoard`?
+    // debug_assert!(board.is_sane());
     let mut steady = *steady;
     for color in ALL_COLORS {
         // steady pieces due to castling rights
@@ -88,8 +89,6 @@ const MARRIAGE_CAGE: [BitBoard; 2] = [
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
     use super::*;
     use crate::utils::*;
 
@@ -124,7 +123,7 @@ mod tests {
         ]
         .iter()
         .for_each(|(fen, assumed_steady, expected_steady)| {
-            let board = Board::from_str(fen).expect("Valid Position");
+            let board = RetractableBoard::from_fen(fen).expect("Valid Position");
             let assumed_steady = bitboard_of_squares(assumed_steady);
             assert_eq!(
                 steady_pieces(&board, &assumed_steady),

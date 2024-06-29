@@ -34,6 +34,10 @@ fn test_legality() {
         ("rnb1kb2/pppppppr/7p/8/8/P5PP/1PPPP1PR/RNB1KBN1 w Qq -", No),
         ("rnb1kb2/pppppppr/7p/8/8/P5PP/1PPPP1PR/RNB1KBN1 b Qq -", Yes),
         ("rnb1kb2/pppppppr/7p/8/8/P5PP/1PPPP1PR/RNB1KB2 w Qq -", Yes),
+        (
+            "Nrq1kb1r/pppppppp/1N6/8/1P6/4n1n1/1PPPPPPP/R1BQKB1R b KQk -",
+            TBD,
+        ),
     ]
     .iter()
     .for_each(|(fen, expected_legal)| {
