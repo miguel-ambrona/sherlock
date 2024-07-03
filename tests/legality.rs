@@ -8,10 +8,21 @@ pub enum Legal {
     TBD, // Used for illegal positions that cannot be captured yet
 }
 
+fn test_legality(positions: &[(&str, Legal)]) {
+    positions.iter().for_each(|(fen, expected_legal)| {
+        let board = Board::from_str(fen).expect("Valid Position");
+        let legal = sherlock::is_legal(&board);
+        match expected_legal {
+            Legal::Yes | Legal::TBD => assert!(legal),
+            Legal::No => assert!(!legal),
+        }
+    })
+}
+
 #[test]
-fn test_legality() {
+fn test_legality_misc() {
     use crate::Legal::*;
-    [
+    let positions = [
         ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -", Yes),
         ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq -", No),
         ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBNKBNR w - -", No),
@@ -36,16 +47,33 @@ fn test_legality() {
         ("rnb1kb2/pppppppr/7p/8/8/P5PP/1PPPP1PR/RNB1KB2 w Qq -", Yes),
         (
             "Nrq1kb1r/pppppppp/1N6/8/1P6/4n1n1/1PPPPPPP/R1BQKB1R b KQk -",
-            TBD,
+            No,
         ),
-    ]
-    .iter()
-    .for_each(|(fen, expected_legal)| {
-        let board = Board::from_str(fen).expect("Valid Position");
-        let legal = sherlock::is_legal(&board);
-        match expected_legal {
-            Yes | TBD => assert!(legal),
-            No => assert!(!legal),
-        }
-    })
+    ];
+    test_legality(&positions)
+}
+
+#[test]
+#[ignore]
+fn test_legality_slow() {
+    use crate::Legal::*;
+    let positions = [
+        (
+            "r1b1k2r/1pppppp1/7B/p7/1N6/1PP5/NPP1PPPP/2KR1B1R w kq -",
+            No,
+        ),
+        (
+            "r1b1k2r/1pppppp1/7B/p7/1N6/1PP5/NPP1PPPP/2KR1BR1 w kq -",
+            Yes,
+        ),
+        (
+            "r1b1k2r/1pppppp1/7B/p7/1N6/1PP5/NPP1PPPP/2KR1B1R b kq -",
+            Yes,
+        ),
+        (
+            "r1b1k2r/1pppppp1/7B/p7/1N6/1PP5/NPP1PPPP/2KR1B1R w - -",
+            Yes,
+        ),
+    ];
+    test_legality(&positions)
 }
