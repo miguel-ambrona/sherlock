@@ -42,18 +42,16 @@ impl Analysis {
     /// </details>
     ///
     /// ```
-    /// use std::str::FromStr;
-    ///
-    /// use chess::{Board, Square};
-    /// use sherlock::analyze;
-    ///
-    /// let board =
-    ///     Board::from_str("2bqkb2/1ppppp2/8/8/8/8/1PPPPPP1/2BQKB2 w - -").expect("Valid Position");
+    /// # use std::str::FromStr;
+    /// # use chess::{Board, Square};
+    /// # use sherlock::analyze;
+    /// let board = Board::from_str("2bqkb2/1ppppp2/8/8/8/8/1PPPPPP1/2BQKB2 w - -")?;
     /// let analysis = analyze(&board.into());
     ///
     /// // The white queen cannot possibly have moved, unlike the black queen
     /// assert_eq!(analysis.is_steady(Square::D1), true);
     /// assert_eq!(analysis.is_steady(Square::D8), false);
+    /// # Ok::<(), chess::Error>(())
     /// ```
     #[inline]
     pub fn is_steady(&self, square: Square) -> bool {
