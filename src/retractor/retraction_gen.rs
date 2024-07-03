@@ -451,7 +451,6 @@ fn test_nb_retractions() {
         for _r in iterable {
             cnt += 1;
         }
-        println!("{}", fen);
         assert_eq!(cnt, *n);
     })
 }

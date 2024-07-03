@@ -4,7 +4,7 @@
 //! piece to be captured. This allows us to deduce new information about e.g.
 //! the destinies of a pieces.
 
-use chess::{BitBoard, Color, Square, ALL_COLORS, EMPTY};
+use chess::{BitBoard, Color, Piece, Square, ALL_COLORS, ALL_FILES, ALL_RANKS, EMPTY};
 
 use super::{Analysis, Rule, COLOR_ORIGINS};
 use crate::{utils::find_k_group, Legality};
@@ -50,7 +50,65 @@ impl Rule for TombsRule {
                 for tomb in analysis.captures(origin) {
                     captured_candidates[tombs.len()] =
                         missing_with_target_as_candidate_destiny(analysis, !color, tomb);
-                    tombs.push(tomb);
+                    tombs.push(BitBoard::from_square(tomb));
+                }
+
+                // if we do not have forced-captures information, but the piece is a pawn and we
+                // know it has performed some captures, we may still include a set of tombs, if
+                // its destiny is clear, it is defintely not missing and it finishes as a pawn
+                if analysis.nb_captures_lower_bound(origin) > 0
+                    && analysis.captures(origin) == EMPTY
+                    && analysis.destinies(origin).popcnt() == 1
+                    && analysis.is_definitely_on_the_board(origin)
+                    && analysis
+                        .board
+                        .piece_on(analysis.destinies(origin).to_square())
+                        == Some(Piece::Pawn)
+                {
+                    let destiny = analysis.destinies(origin).to_square();
+
+                    let file_origin = origin.get_file().to_index();
+                    let file_destiny = destiny.get_file().to_index();
+                    let file_diff = (file_destiny as i32 - file_origin as i32).abs();
+
+                    let rank_origin = origin.get_rank().to_index();
+                    let rank_destiny = destiny.get_rank().to_index();
+                    let rank_diff = (rank_destiny as i32 - rank_origin as i32).abs();
+
+                    let vertical_dir = if color == Color::White { 1 } else { -1 };
+                    let horizontal_dir = if file_origin < file_destiny { 1 } else { -1 };
+
+                    // we only continue if the capturing horizontal direction is unique (i.e., it is
+                    // not possible to reach the destiny by a capture to the right followed by a
+                    // sequence of captures to the left); this is guaranteed if an upper bound on
+                    // the number of captures prevents so, or if the file difference greater than or
+                    // equal to the rank difference minus one
+                    if analysis.nb_captures_upper_bound(origin) - file_diff <= 1
+                        || file_diff >= rank_diff - 1
+                    {
+                        // for every file in between, add a window of potential capturing squares in
+                        // that file to the set of tombs
+                        let window_size = (file_diff - rank_diff).unsigned_abs() as usize;
+                        for i in 1..=file_diff as usize {
+                            let mut tomb_candidates = EMPTY;
+                            let mut tomb_squares = EMPTY;
+
+                            for j in 0..=window_size {
+                                let rank = ALL_RANKS
+                                    [rank_origin + (vertical_dir * (i + j) as i32) as usize];
+                                let file =
+                                    ALL_FILES[file_origin + (horizontal_dir * i as i32) as usize];
+                                let tomb = Square::make_square(rank, file);
+
+                                tomb_squares ^= BitBoard::from_square(tomb);
+                                tomb_candidates |= missing_with_target_as_candidate_destiny(
+                                    analysis, !color, tomb,
+                                );
+                            }
+                            captured_candidates[tombs.len()] = tomb_candidates;
+                            tombs.push(tomb_squares);
+                        }
+                    }
                 }
             }
 
@@ -73,7 +131,7 @@ impl Rule for TombsRule {
                     == analysis.origins(square)
                 {
                     origins_of_finals[finals.len()] = analysis.origins(square);
-                    finals.push(square);
+                    finals.push(BitBoard::from_square(square));
                 }
             }
 
@@ -91,9 +149,8 @@ impl Rule for TombsRule {
                             iter = remaining;
 
                             // the destinies of the k-group are now clear
-                            let group_destinies = group_indices.fold(EMPTY, |acc, idx| {
-                                acc | BitBoard::from_square(finals[idx.to_index()])
-                            });
+                            let group_destinies =
+                                group_indices.fold(EMPTY, |acc, idx| acc | finals[idx.to_index()]);
                             for square in group {
                                 progress |= analysis.update_destinies(square, group_destinies)
                             }

@@ -47,7 +47,7 @@ fn test_legality_misc() {
         ("rnb1kb2/pppppppr/7p/8/8/P5PP/1PPPP1PR/RNB1KB2 w Qq -", Yes),
         (
             "Nrq1kb1r/pppppppp/1N6/8/1P6/4n1n1/1PPPPPPP/R1BQKB1R b KQk -",
-            TBD,
+            No,
         ),
     ];
     test_legality(&positions)
