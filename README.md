@@ -50,10 +50,10 @@ use chess::Board;
 use sherlock::is_legal;
 use std::str::FromStr;
 
-let board = Board::from_str("r1bqkb1r/ppppp1pp/8/8/2pP4/8/1PP1PPPP/R1BQKB1R b KQkq d3")?;
+let board = Board::from_str("r1bqkb1r/ppppp1pp/8/8/2pP4/8/1PP1PPPP/R1BQKB1R b KQkq d3").unwrap();
 assert_eq!(is_legal(&board), false);
 
 // the same position with en-passant disabled would be legal
-let board = Board::from_str("r1bqkb1r/ppppp1pp/8/8/2pP4/8/1PP1PPPP/R1BQKB1R b KQkq -")?;
+let board = Board::from_str("r1bqkb1r/ppppp1pp/8/8/2pP4/8/1PP1PPPP/R1BQKB1R b KQkq -").unwrap();
 assert_eq!(is_legal(&board), true);
 ```

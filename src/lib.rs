@@ -30,6 +30,8 @@ mod utils;
 
 pub use crate::{analysis::*, legality::*, retractor::*};
 
+#[doc = include_str!("../README.md")]
+
 impl Analysis {
     /// Tells whether the piece on the given square was classified as steady
     /// (it has never moved and is still on their starting square).
