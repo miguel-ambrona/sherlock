@@ -26,6 +26,7 @@ fn test_legality_misc() {
         ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -", Yes),
         ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq -", No),
         ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBNKBNR w - -", No),
+        ("rnb1kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNB1KBNR b - -", No),
         // the following is illegal but only if 0-0 is enableld for White,
         // as promoting on H1 would require only 1 capture
         ("rnbqkbnr/pppppp1p/8/3b4/8/6P1/PPPPPP2/RNBQK1NR w K -", No),
