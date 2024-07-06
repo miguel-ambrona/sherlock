@@ -7,9 +7,9 @@
 //! pawns on their relative 2nd rank are steady, thus a white bishop on c1 is
 //! steady if there are white pawns on b2 and d2).
 
-use chess::{BitBoard, CastleRights, Piece, ALL_COLORS};
+use chess::{get_rank, BitBoard, CastleRights, Piece, ALL_COLORS};
 
-use super::{Analysis, Rule};
+use super::{Analysis, Rule, QUEEN_ORIGINS};
 use crate::{rules::COLOR_ORIGINS, utils::predecessors, RetractableBoard};
 
 #[derive(Debug)]
@@ -31,8 +31,17 @@ impl Rule for SteadyRule {
     }
 
     fn apply(&self, analysis: &mut Analysis) -> bool {
-        let new_steady = steady_pieces(&analysis.board, &analysis.steady.value);
-        analysis.update_steady(new_steady)
+        let steady = steady_pieces(&analysis.board, &analysis.steady.value);
+
+        for color in ALL_COLORS {
+            let cage = MARRIAGE_CAGE[color.to_index()];
+            if (cage & steady) == cage {
+                let queen_bb = QUEEN_ORIGINS & get_rank(color.to_my_backrank());
+                analysis.update_destinies(queen_bb.to_square(), queen_bb);
+            }
+        }
+
+        analysis.update_steady(steady)
     }
 }
 

@@ -69,11 +69,11 @@ pub const COLOR_ORIGINS: [BitBoard; 2] = [
     BitBoard(65535),                // 1st & 2nd ranks
     BitBoard(18446462598732840960), // 7th & 8th ranks
 ];
-const KING_ORIGINS: BitBoard = BitBoard(1152921504606846992); // E1, E8
-const QUEEN_ORIGINS: BitBoard = BitBoard(648236871364706056); // D1, D8, 2nd & 7th ranks
-const ROOK_ORIGINS: BitBoard = BitBoard(9367205749953986433); // A1, H1, A8, H8, 2nd & 7th ranks
-const KNIGHT_ORIGINS: BitBoard = BitBoard(4827577325564526402); // B1, G1, B8, G8, 2nd & 7th ranks
-const BISHOP_ORIGINS: [BitBoard; 2] = [
+pub const KING_ORIGINS: BitBoard = BitBoard(1152921504606846992); // E1, E8
+pub const QUEEN_ORIGINS: BitBoard = BitBoard(648236871364706056); // D1, D8, 2nd & 7th ranks
+pub const ROOK_ORIGINS: BitBoard = BitBoard(9367205749953986433); // A1, H1, A8, H8, 2nd & 7th ranks
+pub const KNIGHT_ORIGINS: BitBoard = BitBoard(4827577325564526402); // B1, G1, B8, G8, 2nd & 7th ranks
+pub const BISHOP_ORIGINS: [BitBoard; 2] = [
     BitBoard(360006495212994336),  // F1, C8, 2nd & 7th ranks
     BitBoard(2377619128274976516), // C1, F8, 2nd & 7th ranks
 ];
