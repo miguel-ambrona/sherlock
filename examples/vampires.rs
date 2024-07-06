@@ -3,13 +3,13 @@ use std::{collections::HashMap, str::FromStr};
 use chess::{Board, MoveGen};
 use sherlock::is_legal;
 
-const MAX_DEPTH: u8 = 15;
+const MAX_DEPTH: u8 = 50;
 
 fn main() {
     // the initial position with black to move (the Head Vampire)
-    let board = Board::from_str("rnb1kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNB1KBNR b - -").unwrap();
+    let board = Board::from_str("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - -").unwrap();
 
-    let mut table = HashMap::<Board, u8>::new();
+    let mut table = HashMap::<Board, (u8, bool)>::new();
     for depth in 0..MAX_DEPTH {
         println!("Analyzing depth: {}", depth);
         search(&mut table, &board, depth);
@@ -18,27 +18,33 @@ fn main() {
     println!("Vampires up to depth {}: {}", MAX_DEPTH, table.len());
 }
 
-fn search(table: &mut HashMap<Board, u8>, board: &Board, depth: u8) {
+fn search(table: &mut HashMap<Board, (u8, bool)>, board: &Board, depth: u8) {
     if depth == 0 {
         return;
     }
 
-    if let Some(stored_depth) = table.get(board) {
-        if *stored_depth >= depth {
+    if table.len() % 1000 == 0 {
+        dbg!(table.len());
+    }
+
+    if let Some((stored_depth, stored_is_legal)) = table.get(board) {
+        if *stored_is_legal || *stored_depth >= depth {
             return;
         }
-    };
-
-    table.insert(*board, depth);
-
-    if !is_legal(board) {
-        // this is the mirror image of a vampire!
-        if depth >= 15 {
-            println!("{}, {}", depth, board);
-        }
+        table.insert(*board, (depth, false));
     } else {
-        // we lost the parity invariant, we can stop the search
-        return;
+        let legal = is_legal(board);
+        table.insert(*board, (depth, legal));
+
+        if legal {
+            // we lost the parity invariant, we can stop the search
+            return;
+        }
+    }
+
+    // this is the mirror image of a vampire!
+    if depth >= 15 {
+        println!("{}, {}", depth, board);
     }
 
     let moves = MoveGen::new_legal(board);

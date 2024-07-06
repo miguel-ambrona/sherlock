@@ -1,12 +1,12 @@
 use std::str::FromStr;
 
 use chess::Board;
-use sherlock::is_legal;
+use sherlock::analyze;
 
 fn main() {
-    let board = Board::from_str("Nrq1kb1r/pppppppp/1N6/8/1P6/4n1n1/1PPPPPPP/R1BQKB1R b KQk -")
+    let board = Board::from_str("rnb1kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNB1KBNR b - -")
         .expect("Valid Position");
 
-    let legal = is_legal(&board);
-    dbg!(legal);
+    let analysis = analyze(&board.into());
+    println!("{analysis}");
 }
