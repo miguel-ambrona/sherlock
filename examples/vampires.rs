@@ -1,12 +1,54 @@
-use std::{collections::HashMap, fs::File, io::Write, str::FromStr};
+use std::{
+    cmp::min,
+    collections::{HashMap, HashSet},
+    fs::File,
+    io::Write,
+    str::FromStr,
+};
 
-use chess::{BitBoard, Board, ChessMove, Color, MoveGen, Piece, Square, EMPTY};
-use sherlock::is_legal;
+use chess::{BitBoard, Board, ChessMove, MoveGen, EMPTY};
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use sherlock::{is_legal, RetractableBoard, RetractionGen};
+
+// The squares including squares affecting the clan's castling rights.
+const CLAN_BB: BitBoard = BitBoard(10448351135499550865); // KQkq
+
+// We preserve clans if we do not lose castling rights (except by castling).
+// However, castling moves will be studyied in a post-processing, not here.
+fn preserves_clan(m: &ChessMove) -> bool {
+    let move_bb = BitBoard::from_square(m.get_source()) ^ BitBoard::from_square(m.get_dest());
+    move_bb & CLAN_BB == EMPTY
+}
+
+// Quick test to see if the position is legal.
+// It returns `None` if the test was not conclusive.
+fn quick_legality_test(table: &HashMap<Board, bool>, board: &Board) -> Option<bool> {
+    // If moving forwards we reach an illegal position, we are illegal.
+    for m in MoveGen::new_legal(board) {
+        let new_board = board.make_move_new(m);
+        if table.get(&new_board) == Some(&false) {
+            return Some(false);
+        }
+    }
+
+    // // If moving backwards we reach a legal position, we are legal.
+    // let retractable_board: RetractableBoard = (*board).into();
+    // for r in RetractionGen::new_legal(&retractable_board) {
+    //     let new_board = retractable_board.make_retraction_new(r);
+    //     let board = Board::from_str(format!("{}", new_board).as_str()).unwrap();
+    //     if table.get(&board) == Some(&true) {
+    //         return Some(true);
+    //     }
+    // }
+
+    None
+}
 
 fn main() {
     let mut vampires_file = File::create("vampires-KQkq.txt").unwrap();
+    // let mut humans_file = File::create("humans-KQkq.txt").unwrap();
 
-    // the initial position with black to move (the Head Vampire)
+    // the initial position with black to move (the Head Vampire's image)
     let board = Board::from_str("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq -").unwrap();
 
     vampires_file
@@ -14,18 +56,21 @@ fn main() {
         .unwrap();
 
     let mut table = HashMap::<Board, bool>::new();
-    let mut to_be_analyzed = vec![board];
-    let mut vampire_images = vec![];
-
+    let mut previous_vampire_images = vec![board];
+    let mut current_vampire_images = vec![];
     let mut depth = 1;
+
     loop {
-        if to_be_analyzed.is_empty() {
+        if previous_vampire_images.is_empty() {
             break;
         }
-        for board in to_be_analyzed.iter() {
+
+        let mut to_be_analyzed = HashSet::<Board>::new();
+
+        for board in previous_vampire_images.iter() {
             let moves = MoveGen::new_legal(board);
             for m in moves {
-                if !preserves_clan(board, &m) {
+                if !preserves_clan(&m) {
                     continue;
                 }
                 let new_board = board.make_move_new(m);
@@ -33,118 +78,62 @@ fn main() {
                     continue;
                 }
 
-                // quick tests to see if we are illegal, making a normal move and reaching an
-                // illegal position means we are illegal
-                let mut legal = true;
-                let ms = MoveGen::new_legal(&new_board);
-                for mi in ms {
-                    if BitBoard::from_square(mi.get_source()) & new_board.pieces(Piece::Knight)
-                        == EMPTY
-                    {
-                        continue;
-                    }
-                    let new_board2 = new_board.make_move_new(mi);
-                    if table.get(&new_board2) == Some(&false) {
-                        legal = false;
-                        break;
-                    }
-                }
-
-                if legal {
-                    legal = is_legal(&new_board);
-                }
-                table.insert(new_board, legal);
-
-                if !legal {
-                    vampire_images.push(new_board);
-                    vampires_file
-                        .write_fmt(format_args!(
-                            "D{} P{} {}\n",
-                            depth,
-                            new_board.combined().popcnt(),
-                            new_board
-                        ))
-                        .unwrap();
-                }
+                to_be_analyzed.insert(new_board);
             }
         }
-        to_be_analyzed = vampire_images.clone();
-        println!("\rVampires of depth {}: {}", depth, vampire_images.len());
-        for vampire_image in vampire_images[..5].iter() {
-            println!("  D{} {}", depth, vampire_image);
+
+        let nb_cores = 64;
+        let cores: Vec<usize> = (0..nb_cores).collect();
+
+        let nb_to_be_analyzed = to_be_analyzed.len();
+        let nb_boards_per_core = nb_to_be_analyzed.div_ceil(nb_cores);
+        let to_be_analyzed: Vec<Board> = to_be_analyzed.iter().cloned().collect();
+
+        let local_tables = cores
+            .par_iter()
+            .map(|core_idx| {
+                let mut local_table = HashMap::<Board, bool>::new();
+                let start = core_idx * nb_boards_per_core;
+                let end = min((core_idx + 1) * nb_boards_per_core, nb_to_be_analyzed);
+
+                if start <= end {
+                    for board in to_be_analyzed[start..end].iter() {
+                        let legal = match quick_legality_test(&table, board) {
+                            None => is_legal(board),
+                            Some(res) => res,
+                        };
+                        local_table.insert(*board, legal);
+                    }
+                }
+
+                local_table
+            })
+            .collect::<Vec<_>>();
+
+        for local_table in local_tables.iter() {
+            table.extend(local_table.iter());
+            for (board, legal) in local_table {
+                if !legal {
+                    current_vampire_images.push(*board);
+                    let n = board.combined().popcnt();
+                    vampires_file
+                        .write_fmt(format_args!("D{} P{} {}\n", depth, n, board))
+                        .unwrap();
+                }
+                //  else {
+                // humans_file.write_fmt(format_args!("{}\n", board)).unwrap();
+                // }
+            }
         }
 
-        vampire_images = vec![];
+        previous_vampire_images = current_vampire_images.clone();
+        println!(
+            "\rVampires of depth {}: {}",
+            depth,
+            current_vampire_images.len()
+        );
+
+        current_vampire_images = vec![];
         depth += 1;
     }
-}
-
-fn _search(
-    table: &mut HashMap<Board, (u8, bool)>,
-    vampire_images: &mut Vec<Board>,
-    board: &Board,
-    depth: u8,
-) {
-    if depth == 0 {
-        return;
-    }
-
-    if table.len() % 1000 == 0 {
-        dbg!(table.len());
-    }
-
-    if let Some((stored_depth, stored_is_legal)) = table.get(board) {
-        if *stored_is_legal || *stored_depth >= depth {
-            return;
-        }
-        table.insert(*board, (depth, false));
-    } else {
-        let legal = is_legal(board);
-        table.insert(*board, (depth, legal));
-
-        if legal {
-            // we lost the parity invariant, we can stop the search
-            return;
-        }
-    }
-
-    vampire_images.push(*board);
-
-    let moves = MoveGen::new_legal(board);
-    for m in moves {
-        let new_board = board.make_move_new(m);
-        _search(table, vampire_images, &new_board, depth - 1);
-    }
-}
-
-// We preserve clans, so we are not allow to lose castling rights, except when
-// castling.
-fn preserves_clan(board: &Board, m: &ChessMove) -> bool {
-    let move_bb = BitBoard::from_square(m.get_source()) ^ BitBoard::from_square(m.get_dest());
-    if board.castle_rights(Color::White).has_kingside()
-        && move_bb & (BitBoard::from_square(Square::E1) | BitBoard::from_square(Square::H1))
-            != EMPTY
-    {
-        return false;
-    }
-    if board.castle_rights(Color::Black).has_kingside()
-        && move_bb & (BitBoard::from_square(Square::E8) | BitBoard::from_square(Square::H8))
-            != EMPTY
-    {
-        return false;
-    }
-    if board.castle_rights(Color::White).has_queenside()
-        && move_bb & (BitBoard::from_square(Square::E1) | BitBoard::from_square(Square::A1))
-            != EMPTY
-    {
-        return false;
-    }
-    if board.castle_rights(Color::Black).has_queenside()
-        && move_bb & (BitBoard::from_square(Square::E8) | BitBoard::from_square(Square::A8))
-            != EMPTY
-    {
-        return false;
-    }
-
-    true
 }
