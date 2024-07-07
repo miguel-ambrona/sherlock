@@ -1,11 +1,17 @@
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::HashMap, fs::File, io::Write, str::FromStr};
 
-use chess::{BitBoard, Board, ChessMove, Color, MoveGen, Square, EMPTY};
+use chess::{BitBoard, Board, ChessMove, Color, MoveGen, Piece, Square, EMPTY};
 use sherlock::is_legal;
 
 fn main() {
+    let mut vampires_file = File::create("vampires-KQkq.txt").unwrap();
+
     // the initial position with black to move (the Head Vampire)
     let board = Board::from_str("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq -").unwrap();
+
+    vampires_file
+        .write_fmt(format_args!("D0 P32 {}\n", board))
+        .unwrap();
 
     let mut table = HashMap::<Board, bool>::new();
     let mut to_be_analyzed = vec![board];
@@ -27,11 +33,38 @@ fn main() {
                     continue;
                 }
 
-                let legal = is_legal(&new_board);
+                // quick tests to see if we are illegal, making a normal move and reaching an
+                // illegal position means we are illegal
+                let mut legal = true;
+                let ms = MoveGen::new_legal(&new_board);
+                for mi in ms {
+                    if BitBoard::from_square(mi.get_source()) & new_board.pieces(Piece::Knight)
+                        == EMPTY
+                    {
+                        continue;
+                    }
+                    let new_board2 = new_board.make_move_new(mi);
+                    if table.get(&new_board2) == Some(&false) {
+                        legal = false;
+                        break;
+                    }
+                }
+
+                if legal {
+                    legal = is_legal(&new_board);
+                }
                 table.insert(new_board, legal);
 
                 if !legal {
                     vampire_images.push(new_board);
+                    vampires_file
+                        .write_fmt(format_args!(
+                            "D{} P{} {}\n",
+                            depth,
+                            new_board.combined().popcnt(),
+                            new_board
+                        ))
+                        .unwrap();
                 }
             }
         }
