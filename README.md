@@ -8,6 +8,9 @@
 A chess library written in Rust, oriented to creating and solving chess
 compositions with especial emphasis on retrograde analysis.
 
+This library's name is inspired by *"The Chess Mysteries of Sherlock Holmes"*,
+a master piece on retrograde analysis by the great Raymond Smullyan.
+
 We rely on [jordanbray/chess](https://crates.io/crates/chess), an amazing
 Rust chess library for very efficient move generation.
 
@@ -25,7 +28,7 @@ Rust chess library for very efficient move generation.
 It turns out to be illegal!<br><br>
 
 <details>
-<summary>Explanation.<br><br></summary>
+<summary>Click here for an explanation.<br><br></summary>
 First, realize that only knights and pawns can have moved in this game.
 Then, observe that for the black F-pawn to reach c4, it must have captured white
 knights on e6 and d5, and also the white A-pawn on c4 (who reached this square by
@@ -43,7 +46,7 @@ by each side.
  Since both players made an even number of moves, they must have moved the same
  number of times and it should be White's turn, but it is not!
 </details>
-Sherlock can realize this.
+Sherlock can realize this.<br><br>
 
 ```rust
 use chess::Board;
