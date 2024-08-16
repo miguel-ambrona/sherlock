@@ -61,8 +61,9 @@ fn test_legality_misc() {
 
         // the following should be illegal, as the promoted white knight 
         // cannot have possibly left A8
-        ("1nbqkbnr/1ppppppp/1p6/3rN3/8/8/1PPPPPPP/R1BQKBNR b - -", TBD),
-        ("Nnbqkbnr/1ppppppp/1p6/3r4/8/8/1PPPPPPP/R1BQKBNR b - -", Legal),
+        ("1nbqkbnr/1ppppppp/1p6/3rN3/8/8/1PPPPPPP/R1BQKBNR b Q -", Illegal),
+        ("1nbqkbnr/1ppppppp/1p6/3rN3/8/8/1PPPPPPP/R1BQKBNR b - -", Legal), // wRa1 -> b6
+        ("Nnbqkbnr/1ppppppp/1p6/3r4/8/8/1PPPPPPP/R1BQKBNR b Q -", Legal),
     ];
     test_legality(&positions)
 }
