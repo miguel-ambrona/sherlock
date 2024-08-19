@@ -76,7 +76,7 @@ fn test_legality_misc() {
         ("3r3r/p2p1p1p/b1p2kp1/1p1npq1n/P7/8/1PPPPPPP/RNB2RQK w - -", TBD),
         ("8/8/8/8/8/P3P2P/1PPP1PP1/2k2K2 w - -", Illegal),
         ("3k1b1K/4ppp1/7p/8/8/8/8/8 w - -", Illegal),
-        ("8/8/8/8/8/6P1/6P1/R3K2k w Q -", TBD),
+        ("8/8/8/8/8/6P1/6P1/R3K2k w Q -", Illegal),
     ];
     test_legality(&positions)
 }

@@ -5,7 +5,9 @@
 //! current square. We remove all such moves from the mobility graphs
 //! accordingly.
 
-use chess::{get_pawn_attacks, get_rank, Color, Piece, Rank, ALL_COLORS, ALL_PIECES, EMPTY};
+use chess::{
+    get_pawn_attacks, get_pawn_quiets, get_rank, Color, Piece, Rank, ALL_COLORS, ALL_PIECES, EMPTY,
+};
 
 use super::{Analysis, Rule};
 
@@ -69,6 +71,12 @@ impl Rule for PawnOn3rdRankRule {
                         }
                     }
                 }
+
+                // if the 3rd rank pawn captured, the opposite king cannot have
+                // reached its current square
+                if analysis.origins(square) & get_pawn_quiets(square, !color, EMPTY) == EMPTY {
+                    progress |= analysis.remove_incoming_edges(Piece::King, !color, square);
+                }
             }
         }
 
@@ -87,7 +95,7 @@ mod tests {
     #[test]
     fn test_pawn_on_3rd_rank() {
         let board =
-            RetractableBoard::from_fen("rnbqkbnr/pppppppp/8/8/8/2P5/P1PPPPPP/RNBQKBNR w KQkq -")
+            RetractableBoard::from_fen("rnbqkbnr/pppppppp/8/8/8/2P3P1/P1P1P1P1/RNBQKBNR w KQkq -")
                 .expect("Valid Position");
         let mut analysis = Analysis::new(&board);
 
@@ -112,5 +120,15 @@ mod tests {
 
         // since C3 comes from B2, the black king connection B4 -> A3 should be disabled
         assert!(!analysis.mobility.value[Black.to_index()][King.to_index()].exists_edge(B4, A3));
+
+        // we still do not know that bK cannot have reached G3
+        assert!(analysis.mobility.value[Black.to_index()][King.to_index()].exists_edge(G4, G3));
+
+        // learn that G2 is not a possible origin of the pawn on G3
+        analysis.update_origins(G3, !BitBoard::from_square(G2));
+        pawn_on_3rd_rank.apply(&mut analysis);
+
+        // now we know
+        assert!(!analysis.mobility.value[Black.to_index()][King.to_index()].exists_edge(G4, G3));
     }
 }
