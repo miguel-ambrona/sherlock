@@ -88,7 +88,13 @@ impl Rule for ParityRule {
             parity_nb_moves += 1;
         }
 
-        if parity_nb_moves % 2 == 1 {
+        #[cfg(not(feature = "duplex"))]
+        let expected_parity = 0;
+
+        #[cfg(feature = "duplex")]
+        let expected_parity = 1;
+
+        if parity_nb_moves % 2 != expected_parity {
             analysis.result = Some(Legality::Illegal);
         }
 

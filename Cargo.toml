@@ -14,3 +14,6 @@ petgraph = "0.6.4"
 
 [build-dependencies]
 rand = { version = "0.7.2", default_features = false, features = ["small_rng"] }
+
+[features]
+duplex = []
