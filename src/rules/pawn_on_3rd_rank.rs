@@ -5,7 +5,7 @@
 //! current square. We remove all such moves from the mobility graphs
 //! accordingly.
 
-use chess::{get_rank, Color, Piece, Rank, ALL_COLORS, ALL_PIECES};
+use chess::{get_pawn_attacks, get_rank, Color, Piece, Rank, ALL_COLORS, ALL_PIECES, EMPTY};
 
 use super::{Analysis, Rule};
 
@@ -56,6 +56,18 @@ impl Rule for PawnOn3rdRankRule {
                             }
                         }
                     }
+
+                    // remove all opponent king arrows between attacked squares
+                    for attacked_from_square in get_pawn_attacks(square, color, !EMPTY) {
+                        for attacked_from_origin in get_pawn_attacks(origin, color, !EMPTY) {
+                            progress |= analysis.remove_edges_passing_through_squares(
+                                Piece::King,
+                                !color,
+                                attacked_from_square,
+                                attacked_from_origin,
+                            );
+                        }
+                    }
                 }
             }
         }
@@ -97,5 +109,8 @@ mod tests {
 
         // but for a white pawn the connection B2 -> C3 should still be enabled
         assert!(analysis.mobility.value[White.to_index()][Pawn.to_index()].exists_edge(B2, C3));
+
+        // since C3 comes from B2, the black king connection B4 -> A3 should be disabled
+        assert!(!analysis.mobility.value[Black.to_index()][King.to_index()].exists_edge(B4, A3));
     }
 }
