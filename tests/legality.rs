@@ -74,9 +74,9 @@ fn test_legality_misc() {
         ("4k3/8/8/8/8/1P6/bPP5/1b2K3 b - -", TBD),
         ("2b4r/p2p1pp1/2p1r2p/1p2q1k1/P1Nnp3/8/1PPPPPPP/R1B1KQ1R w - -", TBD),
         ("3r3r/p2p1p1p/b1p2kp1/1p1npq1n/P7/8/1PPPPPPP/RNB2RQK w - -", TBD),
-        ("8/8/8/8/8/P3P2P/1PPP1PP1/2k2K2 w - -", TBD),
-        ("3k1b1K/4ppp1/7p/8/8/8/8/8 w - -", TBD),
-        ("8/8/8/8/8/6P1/6P1/R3K2k w Q -", TBD),
+        ("8/8/8/8/8/P3P2P/1PPP1PP1/2k2K2 w - -", Illegal),
+        ("3k1b1K/4ppp1/7p/8/8/8/8/8 w - -", Illegal),
+        ("8/8/8/8/8/6P1/6P1/R3K2k w Q -", Illegal),
     ];
     test_legality(&positions)
 }
