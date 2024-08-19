@@ -13,6 +13,7 @@ fn init_rules() -> Vec<Box<dyn Rule>> {
         Box::new(RefineOriginsRule::new()),
         Box::new(DestiniesRule::new()),
         Box::new(SteadyMobilityRule::new()),
+        Box::new(PawnOn2ndRankRule::new()),
         Box::new(PawnOn3rdRankRule::new()),
         Box::new(CornerKnightRule::new()),
         Box::new(CapturesBoundsRule::new()),
