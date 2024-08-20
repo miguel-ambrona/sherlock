@@ -18,10 +18,9 @@ Be sure to include a detailed description of the problem.
 
 ### Testing the limits of Sherlock
 
-Sherlock is not _complete_ (yet?). There are many illegal positions that cannot
-be captured by Sherlock. Try to find one of them! If you do so, please, open an
-issue and label it as
-https://github.com/miguel-ambrona/sherlock/labels/enhancement.
+Sherlock is not _complete_ (yet?). There are many illegal positions that are
+not captured. Try to find one of them! If you do, please, open an issue and 
+label it as https://github.com/miguel-ambrona/sherlock/labels/enhancement.
 
 On the other hand, Sherlock is supposed to be _sound_, i.e. it should never
 classify a legal position as illegal. If you find otherwise, please open an
@@ -33,10 +32,10 @@ Sherlock is made of multiple (usually very simple) deduction
 [rules](https://github.com/miguel-ambrona/sherlock/tree/main/src/rules) that
 allow us to derive new information about a position.
 
-A great way to contribute is to add new rules to Sherlock that would enhance
-his expressivity. Every rule must implement the 
+A great way to contribute is to add new rules to Sherlock. Every rule must
+implement the 
 [Rule trait](https://github.com/miguel-ambrona/sherlock/blob/main/src/rules.rs#L5-L24),
-have a look at some of the
+have a look at the
 [existing rules](https://github.com/miguel-ambrona/sherlock/tree/main/src/rules)
 for some examples.
 
@@ -52,7 +51,7 @@ project's style.
 
 ## License
 
-By contributing to Stockfish, you agree that your contributions will be licensed
+By contributing to Sherlock, you agree that your contributions will be licensed
 under the MIT License.
 See [LICENSE](https://github.com/miguel-ambrona/sherlock/blob/main/LICENSE) for
 more details.
