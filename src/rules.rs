@@ -62,6 +62,9 @@ pub use route_to_reachable::*;
 mod nb_captures;
 pub use nb_captures::*;
 
+mod surpassed_pawns;
+pub use surpassed_pawns::*;
+
 mod missing;
 pub use missing::*;
 
