@@ -1,8 +1,8 @@
 use std::fmt;
 
 use chess::{
-    get_bishop_rays, get_rank, get_rook_rays, BitBoard, Board, Color, File, Piece, Square,
-    ALL_COLORS, ALL_FILES, ALL_PIECES, ALL_SQUARES, EMPTY, NUM_COLORS, NUM_FILES, NUM_PIECES,
+    get_bishop_rays, get_rank, get_rook_rays, BitBoard, Color, File, Piece, Square, ALL_COLORS,
+    ALL_FILES, ALL_PIECES, ALL_SQUARES, EMPTY, NUM_COLORS, NUM_FILES, NUM_PIECES,
     NUM_PROMOTION_PIECES, NUM_SQUARES, PROMOTION_PIECES,
 };
 
@@ -694,7 +694,7 @@ impl fmt::Display for Analysis {
         let mut lines = vec![];
         let mut line = vec![];
         let mut cnt = 0;
-        for square in *Board::default().combined() {
+        for square in ALL_ORIGINS {
             let lower = self.nb_captures_lower_bound(square);
             let upper = self.nb_captures_upper_bound(square);
             line.push(format!(" {}: ({}, {})", square, lower, upper));
