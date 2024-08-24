@@ -10,15 +10,20 @@
 
 use std::cmp::max;
 
-use chess::{get_file, Color, File, Piece, Rank, Square, ALL_FILES};
+use chess::{
+    get_file, get_pawn_attacks, get_rank, BitBoard, Color, File, Piece, Rank, Square, ALL_FILES,
+    EMPTY,
+};
 
 use super::{Analysis, Rule, ALL_ORIGINS};
-use crate::Legality;
+use crate::{rules::COLOR_ORIGINS, utils::origin_color, Legality};
 
 #[derive(Debug)]
 pub struct SurpassedPawnsRule {
     nb_captures_counter: usize,
     origins_counter: usize,
+    missing_counter: usize,
+    steady_counter: usize,
 }
 
 impl Rule for SurpassedPawnsRule {
@@ -26,23 +31,34 @@ impl Rule for SurpassedPawnsRule {
         SurpassedPawnsRule {
             nb_captures_counter: 0,
             origins_counter: 0,
+            missing_counter: 0,
+            steady_counter: 0,
         }
     }
 
     fn update(&mut self, analysis: &Analysis) {
         self.nb_captures_counter = analysis.nb_captures.counter();
         self.origins_counter = analysis.origins.counter();
+        self.missing_counter = analysis.missing.counter();
+        self.steady_counter = analysis.steady.counter();
     }
 
     fn is_applicable(&self, analysis: &Analysis) -> bool {
         self.nb_captures_counter != analysis.nb_captures.counter()
             || self.origins_counter != analysis.origins.counter()
+            || self.missing_counter != analysis.origins.counter()
+            || self.steady_counter != analysis.steady.counter()
     }
 
     fn apply(&self, analysis: &mut Analysis) -> bool {
-        let mut min_nb_captures: i32 = ALL_ORIGINS
+        let min_nb_white_captures: i32 = COLOR_ORIGINS[Color::White.to_index()]
             .map(|origin| analysis.nb_captures_lower_bound(origin))
             .sum();
+        let min_nb_black_captures: i32 = COLOR_ORIGINS[Color::Black.to_index()]
+            .map(|origin| analysis.nb_captures_lower_bound(origin))
+            .sum();
+
+        let mut min_nb_captures = min_nb_white_captures + min_nb_black_captures;
 
         for file in surpassed_pawns_files(analysis) {
             let white_origin = Square::make_square(Rank::Second, file);
@@ -52,7 +68,32 @@ impl Rule for SurpassedPawnsRule {
             min_nb_captures += max(0, 2 - nb_captures_together);
         }
 
-        if min_nb_captures as u32 + analysis.board.combined().popcnt() > 32 {
+        // we can ignore missing pieces that could not possibly have left their first rank and
+        // cannot possibly have been captured by an enemy pawn (in pawn form).
+        let mut ignored = EMPTY;
+        for origin in ALL_ORIGINS {
+            let color = origin_color(origin);
+            let reachable = analysis.reachable(origin);
+            if analysis.is_definitely_missing(origin)
+                && reachable & !get_rank(color.to_my_backrank()) == EMPTY
+                && !reachable.into_iter().any(|square| {
+                    get_pawn_attacks(square, color, !EMPTY) & !analysis.steady.value != EMPTY
+                })
+            {
+                ignored ^= BitBoard::from_square(origin);
+            }
+        }
+
+        let nb_white_ignored = (ignored & COLOR_ORIGINS[Color::White.to_index()]).popcnt();
+        let nb_black_ignored = (ignored & COLOR_ORIGINS[Color::Black.to_index()]).popcnt();
+
+        let nb_white_on_board = analysis.board.color_combined(Color::White).popcnt();
+        let nb_black_on_board = analysis.board.color_combined(Color::Black).popcnt();
+
+        if (min_nb_captures as u32 + analysis.board.combined().popcnt() + ignored.popcnt() > 32)
+            || (min_nb_white_captures as u32 + nb_black_on_board + nb_black_ignored > 16)
+            || (min_nb_black_captures as u32 + nb_white_on_board + nb_white_ignored > 16)
+        {
             analysis.result = Some(Legality::Illegal);
         }
 
