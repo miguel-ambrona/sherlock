@@ -4,9 +4,9 @@
 //! combined candidate origins, those origins cannot be origins of any other
 //! piece.
 
-use chess::ALL_COLORS;
+use chess::{get_file, get_rank, BitBoard, ALL_COLORS};
 
-use super::{Analysis, Rule};
+use super::{sum_lower_bounds_nb_captures, Analysis, Rule, COLOR_ORIGINS};
 use crate::utils::find_k_group;
 
 #[derive(Debug)]
@@ -53,6 +53,28 @@ impl Rule for RefineOriginsRule {
                             // the destinies of the k-group are limited by the group_indices
                             for origin in group {
                                 progress |= analysis.update_destinies(origin, group_indices)
+                            }
+
+                            // a simple heuristic to conclude ASAP that pawns did not capture
+                            let nb_opponents = analysis.board.color_combined(!color).popcnt();
+                            let min_nb_other_captures = sum_lower_bounds_nb_captures(
+                                analysis,
+                                COLOR_ORIGINS[color.to_index()] & !group,
+                            );
+                            if nb_opponents + min_nb_other_captures as u32 >= 15 {
+                                if group & get_rank(color.to_second_rank()) == group {
+                                    for origin in group {
+                                        let destinies = group_indices & get_file(origin.get_file());
+                                        if destinies.popcnt() != 1 {
+                                            continue;
+                                        }
+                                        progress |= analysis.update_destinies(origin, destinies);
+                                        progress |= analysis.update_origins(
+                                            destinies.to_square(),
+                                            BitBoard::from_square(origin),
+                                        );
+                                    }
+                                }
                             }
                         }
                     }

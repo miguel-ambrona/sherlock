@@ -8,7 +8,7 @@
 //! If at any point a lower bound exceeds the corresponding upper bound, the
 //! position can be declared to be illegal.
 
-use chess::{Board, ALL_COLORS};
+use chess::{BitBoard, Board, ALL_COLORS};
 
 use super::{Analysis, Rule, COLOR_ORIGINS};
 use crate::Legality::Illegal;
@@ -42,9 +42,8 @@ impl Rule for CapturesBoundsRule {
         for color in ALL_COLORS {
             // count the number of missing opponents and add all our lower bounds
             let nb_missing_opponents = 16 - analysis.board.color_combined(!color).popcnt() as i32;
-            let sum_lower_bounds: i32 = COLOR_ORIGINS[color.to_index()]
-                .map(|square| analysis.nb_captures_lower_bound(square))
-                .sum();
+            let sum_lower_bounds =
+                sum_lower_bounds_nb_captures(analysis, COLOR_ORIGINS[color.to_index()]);
 
             for square in *Board::default().color_combined(color) {
                 // steady pieces never moved, thus never captured
@@ -68,6 +67,15 @@ impl Rule for CapturesBoundsRule {
         }
         progress
     }
+}
+
+/// Returns the sum of all the known lower bounds on the number of captures
+/// performed by the pieces that started the game on the given squares.
+pub fn sum_lower_bounds_nb_captures(analysis: &Analysis, origins: BitBoard) -> i32 {
+    origins
+        .into_iter()
+        .map(|square| analysis.nb_captures_lower_bound(square))
+        .sum()
 }
 
 #[cfg(test)]
