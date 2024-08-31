@@ -18,6 +18,7 @@ fn init_rules() -> Vec<Box<dyn Rule>> {
         Box::new(CornerKnightRule::new()),
         Box::new(CapturesBoundsRule::new()),
         Box::new(SurpassedPawnsRule::new()),
+        Box::new(UnretractableRule::new()),
         Box::new(MobilityRule::new()),
         Box::new(RouteFromOriginsRule::new()),
         Box::new(RouteToReachable::new()),

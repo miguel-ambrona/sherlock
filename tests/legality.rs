@@ -73,13 +73,16 @@ fn test_legality_misc() {
         ("7b/6p1/3k4/8/8/2K5/8/8 w - -", Illegal),
         ("4k2r/pp1pp1p1/1np2n1p/qr3p2/2PP1N1P/B1PQP1PB/P2KNPR1/R7 b - -", Illegal),
         ("rn2kb2/pp5p/2bppp2/2p2p2/2Nq4/5N2/PPPPPPPP/2B1KB2 b - -", Illegal),
-        ("4k3/8/8/8/8/4P3/1K1PRP2/4b3 b - -", TBD),
-        ("4k3/8/8/8/8/1P6/bPP5/1b2K3 b - -", TBD),
+        ("4k3/8/8/8/8/4P3/1K1PRP2/4b3 b - -", Illegal),
+        ("4k3/8/8/8/8/1P6/bPP5/1b2K3 b - -", Illegal),
         ("2b4r/p2p1pp1/2p1r2p/1p2q1k1/P1Nnp3/8/1PPPPPPP/R1B1KQ1R w - -", TBD),
         ("3r3r/p2p1p1p/b1p2kp1/1p1npq1n/P7/8/1PPPPPPP/RNB2RQK w - -", TBD),
         ("8/8/8/8/8/P3P2P/1PPP1PP1/2k2K2 w - -", Illegal),
         ("3k1b1K/4ppp1/7p/8/8/8/8/8 w - -", Illegal),
         ("8/8/8/8/8/6P1/6P1/R3K2k w Q -", Illegal),
+
+        // cages
+        ("4k1b1/5pp1/6p1/8/8/8/8/4K3 b - -", Illegal),
     ];
     test_legality(&positions)
 }
