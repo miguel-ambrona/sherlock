@@ -65,6 +65,9 @@ pub use nb_captures::*;
 mod surpassed_pawns;
 pub use surpassed_pawns::*;
 
+mod unretractable;
+pub use unretractable::*;
+
 mod missing;
 pub use missing::*;
 
