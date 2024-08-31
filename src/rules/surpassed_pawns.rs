@@ -15,7 +15,7 @@ use chess::{
     EMPTY,
 };
 
-use super::{Analysis, Rule, ALL_ORIGINS};
+use super::{sum_lower_bounds_nb_captures, Analysis, Rule, ALL_ORIGINS};
 use crate::{rules::COLOR_ORIGINS, utils::origin_color, Legality};
 
 #[derive(Debug)]
@@ -51,12 +51,11 @@ impl Rule for SurpassedPawnsRule {
     }
 
     fn apply(&self, analysis: &mut Analysis) -> bool {
-        let min_nb_white_captures: i32 = COLOR_ORIGINS[Color::White.to_index()]
-            .map(|origin| analysis.nb_captures_lower_bound(origin))
-            .sum();
-        let min_nb_black_captures: i32 = COLOR_ORIGINS[Color::Black.to_index()]
-            .map(|origin| analysis.nb_captures_lower_bound(origin))
-            .sum();
+        let min_nb_white_captures =
+            sum_lower_bounds_nb_captures(analysis, COLOR_ORIGINS[Color::White.to_index()]);
+
+        let min_nb_black_captures =
+            sum_lower_bounds_nb_captures(analysis, COLOR_ORIGINS[Color::Black.to_index()]);
 
         let mut min_nb_captures = min_nb_white_captures + min_nb_black_captures;
 
@@ -68,8 +67,9 @@ impl Rule for SurpassedPawnsRule {
             min_nb_captures += max(0, 2 - nb_captures_together);
         }
 
-        // we can ignore missing pieces that could not possibly have left their first rank and
-        // cannot possibly have been captured by an enemy pawn (in pawn form).
+        // we can ignore missing pieces that could not possibly have left their first
+        // rank and cannot possibly have been captured by an enemy pawn (in pawn
+        // form).
         let mut ignored = EMPTY;
         for origin in ALL_ORIGINS {
             let color = origin_color(origin);
