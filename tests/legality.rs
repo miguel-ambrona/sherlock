@@ -53,6 +53,9 @@ fn test_legality_misc() {
         ("rnb1kb2/pppppppr/7p/8/8/P5PP/1PPPP1PR/RNB1KBN1 b Qq -", Legal),
         ("rnb1kb2/pppppppr/7p/8/8/P5PP/1PPPP1PR/RNB1KB2 w Qq -", Legal),
         ("Nrq1kb1r/pppppppp/1N6/8/1P6/4n1n1/1PPPPPPP/R1BQKB1R b KQk -", Illegal),
+
+        ("r1bqk2r/1pppp1p1/8/5pN1/2Q4p/PP5n/pBPPPPPP/N3K1nR w Kkq -", Illegal),
+
         // the following is illegal due to parity, but after f7-f6 the bRg8
         // may have triangulated, as the bNh8 is not blocked anymore
         ("rnbqkbrn/ppppppp1/6p1/8/8/8/PPPPPPPP/RNBQKB1R b - -", TBD),
