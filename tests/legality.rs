@@ -81,8 +81,14 @@ fn test_legality_misc() {
         ("3k1b1K/4ppp1/7p/8/8/8/8/8 w - -", Illegal),
         ("8/8/8/8/8/6P1/6P1/R3K2k w Q -", Illegal),
 
-        // cages
+        // cages - credit to Theodore Hwa:
+        // https://github.com/hwatheod/retractor-python/blob/main/doc/cages.pdf
         ("4k1b1/5pp1/6p1/8/8/8/8/4K3 b - -", Illegal),
+        ("4k3/8/8/8/8/5P2/4PrPP/7K w - -", Legal),
+        ("4k3/8/8/8/8/6P1/4PPrP/7K w - -", TBD),
+        ("Knrk4/BpppRp2/1p2p3/8/8/8/8/8 b - -", Illegal),
+        ("Knrk4/BpppRp2/1p2p3/8/8/8/8/8 w - -", TBD),
+        ("KBrk4/1pppRp2/1p2p3/8/8/8/8/8 b - -", TBD),
     ];
     test_legality(&positions)
 }
