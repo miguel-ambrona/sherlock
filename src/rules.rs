@@ -41,6 +41,9 @@ pub use destinies::*;
 mod steady_mobility;
 pub use steady_mobility::*;
 
+mod royalty_on_1st_rank;
+pub use royalty_on_1st_rank::*;
+
 mod pawn_on_2nd_rank;
 pub use pawn_on_2nd_rank::*;
 
