@@ -6,7 +6,7 @@
 
 use std::collections::HashMap;
 
-use chess::{get_rank, BitBoard, Board, Color, Square, EMPTY};
+use chess::{get_rank, BitBoard, Board, Color, Piece, Square, ALL_COLORS, EMPTY};
 
 use super::{Analysis, Rule};
 use crate::{
@@ -43,16 +43,25 @@ impl Rule for ParityRule {
         let mut parity_nb_moves = 0;
         let mut origins = ALL_ORIGINS;
 
-        // consider the parity of knight moves if totally determined
-        for (bi, gi) in [(Square::B1, Square::G1), (Square::B8, Square::G8)] {
-            if analysis.destinies(bi).popcnt() == 2 {
-                if analysis.destinies(bi) != analysis.destinies(gi) {
-                    return false;
-                }
-                origins &= !BitBoard::from_square(bi);
-                origins &= !BitBoard::from_square(gi);
-                parity_nb_moves += (analysis.destinies(bi) & LIGHT_SQUARES).popcnt();
+        // update knights parity when both original knights are on the board
+        for color in ALL_COLORS {
+            let color_knights =
+                analysis.board.pieces(Piece::Knight) & analysis.board.color_combined(color);
+            if color_knights.popcnt() == 2 && color_knights & analysis.missing(color).all() == EMPTY
+            {
+                let parity = 1 + (color_knights & LIGHT_SQUARES).popcnt();
+                analysis.update_knights_parity(color, parity as u8);
             }
+        }
+
+        // consider the parity of knight moves if totally determined
+        for color in ALL_COLORS {
+            let color_knight_parity = analysis.knight_parity.value[color.to_index()];
+            if color_knight_parity.is_none() {
+                return false;
+            }
+            origins &= !COLOR_B1_AND_G1[color.to_index()];
+            parity_nb_moves += color_knight_parity.unwrap();
         }
 
         // perform a first pass to verify if it is worth applying the parity check
@@ -102,11 +111,16 @@ impl Rule for ParityRule {
     }
 }
 
+pub const COLOR_B1_AND_G1: [BitBoard; 2] = [
+    BitBoard(66),                  // B1 & G1
+    BitBoard(4755801206503243776), // B8 & G8
+];
+
 // Returns `Some n` if all paths to `target` by the piece which started the game
 // in `origin`, from its starting square, require a number of moves whose parity
 // is unique (in which case it coincides with the parity of `n`). Returns `None`
 // if there exist paths of both parities or no paths at all.
-fn path_parity(analysis: &Analysis, origin: Square, target: Square) -> Option<u32> {
+fn path_parity(analysis: &Analysis, origin: Square, target: Square) -> Option<u8> {
     // we try to find a 2-coloring of the connected component of `target` (with
     // reversed arrows) that is reachable from `origin`; this function returns
     // `Some n` if such 2-coloring exists, in that case `n = 0` if the colors of

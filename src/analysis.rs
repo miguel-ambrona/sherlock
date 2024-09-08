@@ -156,6 +156,14 @@ pub struct Analysis {
     /// the position of interest.
     pub(crate) mobility: Counter<[[MobilityGraph; NUM_PIECES]; NUM_COLORS]>,
 
+    /// The parity of the number of moves performed by the original knights of
+    /// a certain color.
+    ///
+    /// For `c : Color`, `knight_parity[c.to_index()] = Some(n)`, means that the
+    /// original knights of color `c` made together a number of moves whose
+    /// parity is the one of `n`.
+    pub(crate) knight_parity: Counter<[Option<u8>; NUM_COLORS]>,
+
     /// A flag about the legality of the position. `None` if undetermined,
     /// `Some(true)` if the position has been determined to be illegal, and
     /// `Some(false)` if the position is known to be legal.
@@ -187,6 +195,7 @@ impl Analysis {
                 core::array::from_fn(|i| MobilityGraph::init(ALL_PIECES[i], Color::White)),
                 core::array::from_fn(|i| MobilityGraph::init(ALL_PIECES[i], Color::Black)),
             ]),
+            knight_parity: Counter::new([None; NUM_COLORS]),
             result: None,
         }
     }
@@ -566,6 +575,17 @@ impl Analysis {
         self.nb_captures.counter += 1;
         true
     }
+
+    /// Update the knights parity of the given color to the given value.
+    /// Returns a boolean value indicating whether the update changed anything.
+    pub(crate) fn update_knights_parity(&mut self, color: Color, value: u8) -> bool {
+        if self.knight_parity.value[color.to_index()].is_some() {
+            return false;
+        }
+        self.knight_parity.value[color.to_index()] = Some(value);
+        self.knight_parity.counter += 1;
+        true
+    }
 }
 
 fn write_bitboard(f: &mut fmt::Formatter, name: String, bitboard: BitBoard) -> fmt::Result {
@@ -710,6 +730,11 @@ impl fmt::Display for Analysis {
         for line in lines.iter().rev() {
             writeln!(f, "{}", line)?;
         }
+        writeln!(
+            f,
+            "\nknight_parity (cnt: {}): {:?}",
+            self.knight_parity.counter, self.knight_parity.value
+        )?;
         writeln!(f, "\nresult: {:?}", self.result)
     }
 }
