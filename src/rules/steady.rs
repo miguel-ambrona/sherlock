@@ -7,7 +7,7 @@
 //! pawns on their relative 2nd rank are steady, thus a white bishop on c1 is
 //! steady if there are white pawns on b2 and d2).
 
-use chess::{get_rank, BitBoard, CastleRights, Piece, ALL_COLORS};
+use chess::{get_rank, BitBoard, CastleRights, Piece, ALL_COLORS, EMPTY};
 
 use super::{Analysis, Rule, QUEEN_ORIGINS};
 use crate::{rules::COLOR_ORIGINS, utils::predecessors, RetractableBoard};
@@ -80,7 +80,12 @@ fn steady_pieces(board: &RetractableBoard, steady: &BitBoard) -> BitBoard {
         // a king-queen couple surrounded by steady pieces must be steady
         let couple = MARRIAGE_COUPLE[color.to_index()];
         let cage = MARRIAGE_CAGE[color.to_index()];
-        if (cage & steady) == cage && (couple & board.color_combined(color)) == couple {
+        // Knights are the only piece that can jump into the cage. Instead of checking
+        // that there is a queen and a king, we can simply check there are no knights.
+        if (cage & steady) == cage
+            && (couple & board.color_combined(color)) == couple
+            && couple & board.pieces(Piece::Knight) == EMPTY
+        {
             steady |= couple;
         }
     }
