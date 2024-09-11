@@ -6,8 +6,11 @@
 
 use chess::{BitBoard, Color, Piece, Square, ALL_COLORS, ALL_FILES, ALL_RANKS, EMPTY};
 
-use super::{Analysis, Rule, COLOR_ORIGINS};
-use crate::{utils::find_k_group, Legality};
+use super::{Analysis, Rule, COLOR_B1_AND_G1, COLOR_ORIGINS};
+use crate::{
+    utils::{find_k_group, DARK_SQUARES, LIGHT_SQUARES},
+    Legality,
+};
 
 #[derive(Debug)]
 pub struct TombsRule {
@@ -148,9 +151,27 @@ impl Rule for TombsRule {
                             let group_indices = iter & !remaining;
                             iter = remaining;
 
+                            // update the (opposite color) knight parity if it can be determined
+                            if group == COLOR_B1_AND_G1[(!color).to_index()] {
+                                let (nb_light_targets, nb_dark_targets) =
+                                    group_indices.fold((0, 0), |acc, idx| {
+                                        let targets = finals[idx.to_index()];
+                                        (
+                                            acc.0 + (targets & LIGHT_SQUARES).popcnt(),
+                                            acc.1 + (targets & DARK_SQUARES).popcnt(),
+                                        )
+                                    });
+                                if nb_light_targets == 0 || nb_dark_targets == 0 {
+                                    progress |= analysis.update_knights_parity(!color, 1);
+                                } else if nb_light_targets == 1 && nb_dark_targets == 1 {
+                                    progress |= analysis.update_knights_parity(!color, 0);
+                                }
+                            }
+
                             // the destinies of the k-group are now clear
                             let group_destinies =
                                 group_indices.fold(EMPTY, |acc, idx| acc | finals[idx.to_index()]);
+
                             for square in group {
                                 progress |= analysis.update_destinies(square, group_destinies)
                             }

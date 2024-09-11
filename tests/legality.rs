@@ -53,6 +53,8 @@ fn test_legality_misc() {
         ("rnb1kb2/pppppppr/7p/8/8/P5PP/1PPPP1PR/RNB1KBN1 b Qq -", Legal),
         ("rnb1kb2/pppppppr/7p/8/8/P5PP/1PPPP1PR/RNB1KB2 w Qq -", Legal),
         ("Nrq1kb1r/pppppppp/1N6/8/1P6/4n1n1/1PPPPPPP/R1BQKB1R b KQk -", Illegal),
+        ("r1bnkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -", Legal),
+        ("rnbqkbnr/1pppppp1/1N5p/1p6/8/8/PPPPPPPP/R1BQKB1R w KQkq -", Legal),
 
         ("r1bqk2r/1pppp1p1/8/5pN1/2Q4p/PP5n/pBPPPPPP/N3K1nR w Kkq -", Illegal),
 
