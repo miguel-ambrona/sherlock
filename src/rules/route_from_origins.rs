@@ -16,6 +16,7 @@ pub struct RouteFromOriginsRule {
     reachable_from_promotion_counter: usize,
     nb_captures_counter: usize,
     steady_counter: usize,
+    origins_counter: usize,
 }
 
 impl Rule for RouteFromOriginsRule {
@@ -26,6 +27,7 @@ impl Rule for RouteFromOriginsRule {
             reachable_from_promotion_counter: 0,
             nb_captures_counter: 0,
             steady_counter: 0,
+            origins_counter: 0,
         }
     }
 
@@ -35,6 +37,7 @@ impl Rule for RouteFromOriginsRule {
         self.reachable_from_promotion_counter = analysis.reachable_from_promotion.counter();
         self.nb_captures_counter = analysis.nb_captures.counter();
         self.steady_counter = analysis.steady.counter();
+        self.origins_counter = analysis.origins.counter();
     }
 
     fn is_applicable(&self, analysis: &Analysis) -> bool {
@@ -43,6 +46,7 @@ impl Rule for RouteFromOriginsRule {
             || self.reachable_from_promotion_counter != analysis.reachable_from_promotion.counter()
             || self.nb_captures_counter != analysis.nb_captures.counter()
             || self.steady_counter != analysis.steady.counter()
+            || self.origins_counter != analysis.origins.counter()
     }
 
     fn apply(&self, analysis: &mut Analysis) -> bool {
