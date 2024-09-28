@@ -4,15 +4,17 @@
 //! combined candidate origins, those origins cannot be origins of any other
 //! piece.
 
-use chess::{get_file, BitBoard, Piece, ALL_COLORS};
+use chess::{get_file, get_rank, BitBoard, Piece, ALL_COLORS, EMPTY};
 
 use super::{sum_lower_bounds_nb_captures, Analysis, Rule, COLOR_ORIGINS};
-use crate::utils::find_k_group;
+use crate::{utils::find_k_group, Legality::Illegal};
 
 #[derive(Debug)]
 pub struct RefineOriginsRule {
     origins_counter: usize,
     nb_captures_counter: usize,
+    reachable_from_origin_counter: usize,
+    pawn_capture_distances_counter: usize,
 }
 
 impl Rule for RefineOriginsRule {
@@ -20,17 +22,23 @@ impl Rule for RefineOriginsRule {
         RefineOriginsRule {
             origins_counter: 0,
             nb_captures_counter: 0,
+            reachable_from_origin_counter: 0,
+            pawn_capture_distances_counter: 0,
         }
     }
 
     fn update(&mut self, analysis: &Analysis) {
         self.origins_counter = analysis.origins.counter();
         self.nb_captures_counter = analysis.nb_captures.counter();
+        self.reachable_from_origin_counter = analysis.reachable_from_origin.counter();
+        self.pawn_capture_distances_counter = analysis.pawn_capture_distances.counter();
     }
 
     fn is_applicable(&self, analysis: &Analysis) -> bool {
         self.origins_counter != analysis.origins.counter()
             || self.nb_captures_counter != analysis.nb_captures.counter()
+            || self.reachable_from_origin_counter != analysis.reachable_from_origin.counter()
+            || self.pawn_capture_distances_counter != analysis.pawn_capture_distances.counter()
     }
 
     fn apply(&self, analysis: &mut Analysis) -> bool {
@@ -70,6 +78,7 @@ impl Rule for RefineOriginsRule {
                                     analysis,
                                     COLOR_ORIGINS[color.to_index()] & !group,
                                 );
+
                                 // the group of (at least 2) pawns captured at most once
                                 if nb_opponents + nb_other_captures as u32 >= 15 {
                                     for origin in group {
@@ -82,6 +91,63 @@ impl Rule for RefineOriginsRule {
                                                 BitBoard::from_square(origin),
                                             );
                                         }
+                                    }
+                                }
+
+                                // if the group has exactly 2 pawns, we will check if one of the
+                                // 2 origin-target possibilities is illegal due to an excessive
+                                // number of captures.
+                                if group.popcnt() == 2 {
+                                    let o1 = group.to_square();
+                                    let o1_bb = BitBoard::from_square(o1);
+                                    let o2_bb = group ^ o1_bb;
+                                    let o2 = o2_bb.to_square();
+
+                                    let t1 = group_indices.to_square();
+                                    let t1_bb = BitBoard::from_square(t1);
+                                    let t2_bb = group_indices ^ t1_bb;
+                                    let t2 = t2_bb.to_square();
+
+                                    let mut nb_missing_opp_that_never_left_first_rank = 0;
+                                    for missing in analysis.missing(!color).certainly_in_the_set()
+                                        & get_rank(color.to_their_backrank())
+                                    {
+                                        if analysis
+                                            .reachable_from_origin(!color, missing.get_file())
+                                            & !get_rank(color.to_their_backrank())
+                                            == EMPTY
+                                        {
+                                            nb_missing_opp_that_never_left_first_rank += 1;
+                                        }
+                                    }
+
+                                    let bound_option1 = nb_opponents as u8
+                                        + analysis.pawn_capture_distances(color, o1.get_file(), t1)
+                                        + analysis.pawn_capture_distances(color, o2.get_file(), t2)
+                                        + nb_other_captures as u8
+                                        + nb_missing_opp_that_never_left_first_rank;
+
+                                    let bound_option2 = nb_opponents as u8
+                                        + analysis.pawn_capture_distances(color, o1.get_file(), t2)
+                                        + analysis.pawn_capture_distances(color, o2.get_file(), t1)
+                                        + nb_other_captures as u8
+                                        + nb_missing_opp_that_never_left_first_rank;
+
+                                    if bound_option1 > 16 && bound_option2 > 16 {
+                                        analysis.result = Some(Illegal);
+                                        return true;
+                                    }
+
+                                    if bound_option1 > 16 {
+                                        progress |= analysis.update_destinies(o1, t2_bb);
+                                        progress |= analysis.update_destinies(o2, t1_bb);
+                                        progress |= analysis.update_origins(t2, o1_bb);
+                                        progress |= analysis.update_origins(t1, o2_bb);
+                                    } else if bound_option2 > 16 {
+                                        progress |= analysis.update_destinies(o1, t1_bb);
+                                        progress |= analysis.update_destinies(o2, t2_bb);
+                                        progress |= analysis.update_origins(t1, o1_bb);
+                                        progress |= analysis.update_origins(t2, o2_bb);
                                     }
                                 }
                             } // end of pawn heuristic
