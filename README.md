@@ -2,6 +2,7 @@
 
 [![Build Status](https://github.com/miguel-ambrona/sherlock-rust/actions/workflows/rust-ci.yml/badge.svg)](https://github.com/miguel-ambrona/sherlock-rust/actions/workflows/rust-ci.yml)
 [![Documentation](https://github.com/miguel-ambrona/sherlock-rust/actions/workflows/rust-docs.yml/badge.svg)](https://github.com/miguel-ambrona/sherlock-rust/actions/workflows/rust-docs.yml)
+[![Examples](https://github.com/miguel-ambrona/sherlock-rust/actions/workflows/examples.yml/badge.svg)](https://github.com/miguel-ambrona/sherlock-rust/actions/workflows/examples.yml)
 
 # Sherlock
 
@@ -27,7 +28,7 @@ Thank you both! :heart:
  Consider the following position where en-passant is possible on d3
  and all castling rights are still available:
 
-![Example](https://backscattering.de/web-boardimage/board.svg?fen=r1bqkb1r/ppppp1pp/8/8/2pP4/8/1PP1PPPP/R1BQKB1R&arrows=Bd2d4&coordinates=true&size=300&colors=lichess-blue)
+![Example](https://backscattering.de/web-boardimage/board.svg?fen=r1bqkb1r/ppppp1pp/8/8/2pP4/8/1PP1PPPP/R1BQKB1R&arrows=Bd2d4&coordinates=true&size=300)
 
 It turns out to be illegal!<br><br>
 
