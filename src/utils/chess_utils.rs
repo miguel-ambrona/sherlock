@@ -9,6 +9,23 @@ use chess::{
 use super::LIGHT_SQUARES;
 use crate::RetractableBoard;
 
+/// An array representing all 12 different (colored) pieces, each consisting of
+/// a pair including their color and their piece type.
+pub const ALL_COLORED_PIECES: [(Color, Piece); 12] = [
+    (Color::White, Piece::Pawn),
+    (Color::White, Piece::Knight),
+    (Color::White, Piece::Bishop),
+    (Color::White, Piece::Rook),
+    (Color::White, Piece::Queen),
+    (Color::White, Piece::King),
+    (Color::Black, Piece::Pawn),
+    (Color::Black, Piece::Knight),
+    (Color::Black, Piece::Bishop),
+    (Color::Black, Piece::Rook),
+    (Color::Black, Piece::Queen),
+    (Color::Black, Piece::King),
+];
+
 /// Construct a `BitBoard` out of the given squares.
 #[cfg(test)]
 pub(crate) fn bitboard_of_squares(squares: &[Square]) -> BitBoard {

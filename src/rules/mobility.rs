@@ -90,7 +90,7 @@ impl Rule for MobilityRule {
                         continue;
                     }
                     let forced = analysis.mobility.value[color.to_index()][Piece::Pawn.to_index()]
-                        .forced_captures(square, target);
+                        .forced_captures(square, target, nb_allowed_captures);
                     progress |= analysis.update_pawn_forced_captures(color, file, target, forced);
                 }
             }

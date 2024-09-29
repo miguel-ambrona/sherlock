@@ -149,20 +149,26 @@ impl MobilityGraph {
 
     /// Returns a `BitBoard` with all the squares where a capture must have
     /// taken place for going from `source` to `target` in this mobility
-    /// graph.
+    /// graph, with at most `allowed_nb_captures`.
     ///
     /// This function returns `EMPTY` if the route is impossible.
-    pub fn forced_captures(&self, source: Square, target: Square) -> BitBoard {
+    pub fn forced_captures(
+        &self,
+        source: Square,
+        target: Square,
+        allowed_nb_captures: u8,
+    ) -> BitBoard {
         let source = self.node(source);
         let finish = |n| n == self.node(target);
         match astar(&self.graph, source, finish, |e| *e.weight(), |_| 0) {
             None => EMPTY,
             Some((distance, path)) => {
+                debug_assert!(distance <= allowed_nb_captures as u32);
                 let mut forced = EMPTY;
                 for node in path.iter().skip(1) {
                     // If after significantly increasing the weight of capturing edges that arrive
-                    // to `node`, the distance from source to target increases by the same amount,
-                    // it must be the case that `node` is an essential (capturing) square.
+                    // to `node`, the distance from source to target surpasses the allowed number of
+                    // captures, it must be the case that `node` is an essential (capturing) square.
 
                     const DELTA: u32 = 1000;
                     let new_weights = |e: EdgeReference<u32, u32>| {
@@ -175,7 +181,7 @@ impl MobilityGraph {
                     let node_map =
                         dijkstra(&self.graph, source, Some(self.node(target)), new_weights);
                     if let Some(new_distance) = node_map.get(&self.node(target)).copied() {
-                        if new_distance == distance + DELTA {
+                        if new_distance > allowed_nb_captures as u32 {
                             forced |= BitBoard::from_square(ALL_SQUARES[node.index()])
                         }
                     }

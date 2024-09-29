@@ -28,7 +28,7 @@ mod retractor;
 mod rules;
 mod utils;
 
-pub use crate::{analysis::*, legality::*, retractor::*};
+pub use crate::{analysis::*, legality::*, retractor::*, utils::ALL_COLORED_PIECES};
 
 #[doc = include_str!("../README.md")]
 
