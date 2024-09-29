@@ -71,7 +71,7 @@ This is a composition by Raymond M. Smullyan from the above-mentioned book.
 On h4 rests a shilling instead of a chess piece. The challenge is to determine
 what piece it is.
 
-![Example](https://backscattering.de/web-boardimage/board.svg?fen=2nR3K/pk1Rp1p1/p2p4/P1p5/1Pp5/2PP2P1/4P2P/n7&squares=h4&coordinates=true&size=300&colors=wikipedia)
+![Example](https://backscattering.de/web-boardimage/board.svg?fen=2nR3K/pk1Rp1p1/p2p4/P1p5/1Pp5/2PP2P1/4P2P/n7&squares=h4&coordinates=true&size=300)
 
 Sherlock can realize that the shilling must be a *white bishop*
 (refer to the book for an explanation):
