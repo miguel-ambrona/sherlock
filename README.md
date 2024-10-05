@@ -20,10 +20,11 @@ The images in this README and our documentation are rendered with
 developed and offered by [Niklas Fiekas](https://github.com/niklasf).
 Thank you both! :heart:
 
-
 ## Examples
 
 ### Check the legality of a position
+
+ A position is *legal* iff it can be achieved in an actual game.
 
  Consider the following position where en-passant is possible on d3
  and all castling rights are still available:
@@ -84,12 +85,12 @@ use sherlock::{is_legal, ALL_COLORED_PIECES};
 let board = Board::from_str("2nR3K/pk1Rp1p1/p2p4/P1p5/1Pp5/2PP2P1/4P2P/n7 b - -").unwrap();
 
 // all the pieces that lead to a legal position when placed on h4
-let valid_pieces: Vec<_> = ALL_COLORED_PIECES
+let valid_pieces_on_h4: Vec<_> = ALL_COLORED_PIECES
     .into_iter()
     .filter(|&(color, piece)| {
         board.set_piece(piece, color, Square::H4).as_ref().map_or(false, is_legal)
     })
     .collect();
 
-assert_eq!(valid_pieces, vec![(White, Bishop)]);
+assert_eq!(valid_pieces_on_h4, vec![(White, Bishop)]);
 ```
