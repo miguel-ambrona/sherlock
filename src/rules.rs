@@ -82,3 +82,6 @@ pub use tombs::*;
 
 mod parity;
 pub use parity::*;
+
+mod events;
+pub use events::*;

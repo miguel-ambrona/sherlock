@@ -164,6 +164,9 @@ pub struct Analysis {
     /// parity is the one of `n`.
     pub(crate) knight_parity: Counter<[Option<u8>; NUM_COLORS]>,
 
+    /// TODO
+    pub(crate) events: Counter<MobilityGraph>,
+
     /// A flag about the legality of the position. `None` if undetermined,
     /// `Some(true)` if the position has been determined to be illegal, and
     /// `Some(false)` if the position is known to be legal.
@@ -196,6 +199,7 @@ impl Analysis {
                 core::array::from_fn(|i| MobilityGraph::init(ALL_PIECES[i], Color::Black)),
             ]),
             knight_parity: Counter::new([None; NUM_COLORS]),
+            events: Counter::new(MobilityGraph::new()),
             result: None,
         }
     }
@@ -576,6 +580,15 @@ impl Analysis {
         true
     }
 
+    pub(crate) fn add_event(&mut self, before: Square, after: Square) -> bool {
+        if self.events.value.exists_edge(before, after) {
+            return false;
+        }
+        self.events.value.add_edge(before, after, 0);
+        self.events.counter += 1;
+        true
+    }
+
     /// Update the knights parity of the given color to the given value.
     /// Returns a boolean value indicating whether the update changed anything.
     pub(crate) fn update_knights_parity(&mut self, color: Color, value: u8) -> bool {
@@ -735,6 +748,12 @@ impl fmt::Display for Analysis {
             "\nknight_parity (cnt: {}): {:?}",
             self.knight_parity.counter, self.knight_parity.value
         )?;
+        writeln!(f, "\nevents (cnt: {}):", self.events.counter)?;
+        for target in ALL_ORIGINS {
+            for source in self.events.value.predecessors(target) {
+                writeln!(f, " {} -> {}", source, target)?;
+            }
+        }
         writeln!(f, "\nresult: {:?}", self.result)
     }
 }

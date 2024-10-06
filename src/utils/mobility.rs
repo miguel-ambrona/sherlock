@@ -18,7 +18,7 @@ pub struct MobilityGraph {
 }
 
 impl MobilityGraph {
-    fn new() -> Self {
+    pub fn new() -> Self {
         let mut graph = DiGraph::<(), u32>::new();
         let square_indices = core::array::from_fn(|_| graph.add_node(()));
         Self {
@@ -53,12 +53,11 @@ impl MobilityGraph {
         self.graph.find_edge(self.node(source), self.node(target))
     }
 
-    fn add_edge(&mut self, source: Square, target: Square, weight: u32) {
+    pub fn add_edge(&mut self, source: Square, target: Square, weight: u32) {
         self.graph
             .add_edge(self.node(source), self.node(target), weight);
     }
 
-    #[cfg(test)]
     /// Tells whether there exists an edge between the two given squares.
     pub fn exists_edge(&self, source: Square, target: Square) -> bool {
         self.edge(source, target).is_some()

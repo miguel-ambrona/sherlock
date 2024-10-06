@@ -27,6 +27,7 @@ fn init_rules() -> Vec<Box<dyn Rule>> {
         Box::new(CapturesRule::new()),
         Box::new(TombsRule::new()),
         Box::new(ParityRule::new()),
+        Box::new(EventsRule::new()),
     ]
 }
 
