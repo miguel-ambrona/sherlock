@@ -70,6 +70,9 @@ fn test_legality_misc() {
         ("1nbqkbnr/1ppppppp/1p6/3rN3/8/8/1PPPPPPP/R1BQKBNR b - -", Legal), // wRa1 -> b6
         ("Nnbqkbnr/1ppppppp/1p6/3r4/8/8/1PPPPPPP/R1BQKBNR b Q -", Legal),
 
+        // misc
+        ("rnbqkBnr/pppppp2/6p1/7p/8/3P4/PPP1PPPP/RN1QKBNR w KQkq -", Legal),
+
         // github issues #36 - #44
         ("rnbqkbnr/ppp2ppp/4p3/3P4/3p4/4P3/PPP2PPP/RNBQKBNR b - -", Illegal),
         ("7b/6p1/3k4/8/8/2K5/8/8 w - -", Illegal),
