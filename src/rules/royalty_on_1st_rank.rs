@@ -6,8 +6,11 @@
 //! order, the position must be illegal.
 //!
 //! Note: We must be careful with castlings.
+//!
+//! Extra: We also have bishops into account although they are not royal pieces
+//! as they are easy to handle.
 
-use chess::{get_rank, Color, File, Square, ALL_COLORS, ALL_FILES, EMPTY};
+use chess::{get_rank, BitBoard, Color, File, Square, ALL_COLORS, ALL_FILES, EMPTY};
 
 use super::{Analysis, Rule};
 use crate::Legality;
@@ -38,7 +41,7 @@ impl Rule for RoyaltyOn1stRankRule {
 
     fn apply(&self, analysis: &mut Analysis) -> bool {
         for color in ALL_COLORS {
-            let royalty = royalty_on_1st_rank(analysis, color);
+            let royalty = never_left_1st_rank(analysis, color);
 
             // we could expect the royalty files to be in alphabetical order for
             // legality, however, castling spoils this nice invariant; instead,
@@ -61,10 +64,9 @@ impl Rule for RoyaltyOn1stRankRule {
     }
 }
 
-// Returns the files of the current location of royal pieces (King, Queen, Rook)
-// of the given color that cannot have possibly have left their relative first
-// rank.
-fn royalty_on_1st_rank(analysis: &Analysis, color: Color) -> Vec<File> {
+/// Returns the files of the current location of pieces of the given color that
+/// cannot have possibly have left their relative first rank.
+fn never_left_1st_rank(analysis: &Analysis, color: Color) -> Vec<File> {
     ALL_FILES
         .into_iter()
         .filter_map(|file| {
@@ -72,6 +74,7 @@ fn royalty_on_1st_rank(analysis: &Analysis, color: Color) -> Vec<File> {
             let origins = analysis.origins(square);
             let origin_file = origins.to_square().get_file();
             if origins.popcnt() == 1
+                && BitBoard::from_square(square) & analysis.board.color_combined(color) != EMPTY
                 && analysis.reachable_from_origin(color, origin_file)
                     & !get_rank(color.to_my_backrank())
                     == EMPTY
@@ -96,18 +99,18 @@ mod tests {
     fn test_royalty_on_1st_rank() {
         use File::*;
         let board =
-            RetractableBoard::from_fen("r2qk2r/pppppppp/8/8/8/8/PPPPPPPP/3K4 w - -").unwrap();
+            RetractableBoard::from_fen("3k4/pppppppp/8/8/8/8/PPPPPPPP/R2K1QR1 w - -").unwrap();
 
         let mut analysis = Analysis::new(&board);
 
-        assert_eq!(royalty_on_1st_rank(&analysis, Color::White), vec![]);
+        assert_eq!(never_left_1st_rank(&analysis, Color::White), vec![]);
 
         // Learn that no white piece could have reached their 1st rank
         for file in ALL_FILES {
             analysis.update_reachable_from_origin(Color::White, file, get_rank(Rank::First));
         }
 
-        assert_eq!(royalty_on_1st_rank(&analysis, Color::White), vec![]);
+        assert_eq!(never_left_1st_rank(&analysis, Color::White), vec![]);
 
         // Learn the origins of A1, D1, F1, G1 are, resp., A1, E1, D1, H1.
         analysis.update_origins(Square::A1, BitBoard::from_square(Square::A1));
@@ -116,7 +119,7 @@ mod tests {
         analysis.update_origins(Square::G1, BitBoard::from_square(Square::H1));
 
         assert_eq!(
-            royalty_on_1st_rank(&analysis, Color::White),
+            never_left_1st_rank(&analysis, Color::White),
             vec![A, E, D, H]
         );
     }
