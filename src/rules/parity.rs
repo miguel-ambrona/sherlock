@@ -47,7 +47,9 @@ impl Rule for ParityRule {
         for color in ALL_COLORS {
             let color_knights =
                 analysis.board.pieces(Piece::Knight) & analysis.board.color_combined(color);
-            if color_knights.popcnt() == 2 && color_knights & analysis.missing(color).all() == EMPTY
+            let knight_origins = color_knights.fold(EMPTY, |acc, o| acc | analysis.origins(o));
+            if color_knights.popcnt() == 2
+                && knight_origins & analysis.missing(color).all() == EMPTY
             {
                 let parity = 1 + (color_knights & LIGHT_SQUARES).popcnt();
                 analysis.update_knights_parity(color, parity as u8);
