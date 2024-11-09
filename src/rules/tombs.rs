@@ -98,9 +98,9 @@ impl Rule for TombsRule {
 
                             for j in 0..=window_size {
                                 let rank = ALL_RANKS
-                                    [rank_origin + (vertical_dir * (i + j) as i32) as usize];
-                                let file =
-                                    ALL_FILES[file_origin + (horizontal_dir * i as i32) as usize];
+                                    [(rank_origin as i32 + vertical_dir * (i + j) as i32) as usize];
+                                let file = ALL_FILES
+                                    [(file_origin as i32 + horizontal_dir * i as i32) as usize];
                                 let tomb = Square::make_square(rank, file);
 
                                 tomb_squares ^= BitBoard::from_square(tomb);

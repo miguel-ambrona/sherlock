@@ -192,6 +192,16 @@ impl RetractionGen {
         let color = analysis.board.side_to_move();
         for (i, uncaptured_piece) in UNCAPTURES.iter().enumerate() {
             if let Some(piece) = uncaptured_piece {
+                // If square is not in the destinies of any of the potential origins of the
+                // piece, a capture cannot take place in the square.
+                let mut destinies_of_piece_origins = EMPTY;
+                for square in ALL_SQUARES {
+                    for origin in origins_of_piece_on(*piece, square) {
+                        destinies_of_piece_origins |= analysis.destinies(origin)
+                    }
+                }
+                self.uncaptured_candidates[i] &= destinies_of_piece_origins;
+
                 let mut piece_uncaptured = EMPTY;
                 for square in ALL_SQUARES {
                     if analysis.missing(color).all() & origins_of_piece_on(*piece, square) != EMPTY
