@@ -26,6 +26,9 @@ pub trait Rule: fmt::Debug {
 mod material;
 pub use material::*;
 
+mod file_counting;
+pub use file_counting::*;
+
 mod steady;
 pub use steady::*;
 

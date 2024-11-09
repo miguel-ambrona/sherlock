@@ -72,6 +72,12 @@ fn test_legality_misc() {
 
         // misc
         ("rnbqkBnr/pppppp2/6p1/7p/8/3P4/PPP1PPPP/RN1QKBNR w KQkq -", Legal),
+        ("rn2k1nr/3p4/1P2Pp1P/P1P3P1/4p3/ppp2Ppp/3P4/RN1QK1NR w - -", Illegal),
+        ("rn2k1nr/3p4/1P2Pp1P/P1P3P1/4p3/ppp2Ppp/3P4/RN2K1NR w - -", Legal),
+        ("rnbk2nr/PP3PPP/1P3P2/8/6p1/ppppppp1/8/RN2K1NR w - -", Illegal),
+        ("rn1k2nr/PP3PPP/1P3P2/8/6p1/ppppppp1/8/RN2K1NR w - -", TBD),
+        ("rn1k2n1/PP3PPP/1P3P2/8/6p1/ppppppp1/8/RN2K1NR w - -", Legal),
+
 
         // github issues #36 - #44
         ("rnbqkbnr/ppp2ppp/4p3/3P4/3p4/4P3/PPP2PPP/RNBQKBNR b - -", Illegal),
