@@ -8,6 +8,7 @@ use crate::{analysis::Analysis, rules::*, Legality::Illegal, RetractableBoard, R
 fn init_rules() -> Vec<Box<dyn Rule>> {
     vec![
         Box::new(MaterialRule::new()),
+        Box::new(FileCountingRule::new()),
         Box::new(OriginsRule::new()),
         Box::new(SteadyRule::new()),
         Box::new(RefineOriginsRule::new()),
