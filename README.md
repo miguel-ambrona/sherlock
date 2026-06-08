@@ -43,11 +43,11 @@ capturing black knights on b3 and c4).
 This makes it possible to determine the parity of the number of moves performed
 by each side.
  * White made an **even** number of moves: 3 pawn moves and an odd
- number of knight moves, since the white knights finished the game on squares of the
- same color.
+   number of knight moves, since the white knights finished the game on squares of the
+   same color.
 
  * Black also made an **even** number of moves: 3 pawn moves and
- again, an odd number of knight moves.
+   again, an odd number of knight moves.
 
  Since both players made an even number of moves, they must have moved the same
  number of times and it should be White's turn, but it is not!

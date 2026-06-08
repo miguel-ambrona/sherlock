@@ -255,7 +255,6 @@ impl Analysis {
 
     /// The known lower bound on the number of captures performed by the piece
     /// that started the game on the given square.
-
     pub(crate) fn nb_captures_lower_bound(&self, square: Square) -> i32 {
         self.nb_captures.value[square.to_index()].0
     }

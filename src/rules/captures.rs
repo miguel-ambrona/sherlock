@@ -133,9 +133,6 @@ pub fn captures_to_target(
             Some(piece) => vec![piece],
         };
         for promoting_square in get_rank(color.to_their_backrank()) & !analysis.steady.value {
-            if captures == EMPTY {
-                break;
-            }
             let d1 = analysis.pawn_capture_distances(color, origin.get_file(), promoting_square);
             if d1 > nb_allowed_captures as u8 {
                 continue;
