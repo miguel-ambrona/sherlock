@@ -18,7 +18,7 @@ fn main() {
             board
                 .set_piece(piece, color, Square::H4)
                 .as_ref()
-                .map_or(false, is_legal)
+                .is_some_and(is_legal)
         })
         .collect();
 
