@@ -101,6 +101,9 @@ fn test_legality_misc() {
         // Smullyan
         ("2nb3K/pkPRp1p1/p2p4/P1p5/1Pp4Q/2PP2P1/4P2P/n7 w - -", Illegal),
         ("2nb3K/pkPRp1p1/p2p4/P1p5/1Pp4B/2PP2P1/4P2P/n7 w - -", Legal),
+
+        // Misc
+        ("5b1B/4p1pk/4P3/6PK/8/8/8/8 w - -", Legal),
     ];
     test_legality(&positions)
 }

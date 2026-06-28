@@ -11,7 +11,7 @@
 //! ones really are unretractable. If there exist unretractable pieces that are
 //! not in their starting square, the position must be illegal.
 
-use chess::{BitBoard, ALL_COLORS, EMPTY};
+use chess::{get_rank, BitBoard, Piece, ALL_COLORS, EMPTY};
 
 use super::{Analysis, Rule};
 use crate::{utils::predecessors, Legality, RetractableBoard};
@@ -57,7 +57,15 @@ fn unretractable_pieces(board: &RetractableBoard, steady: &BitBoard) -> BitBoard
         for color in ALL_COLORS {
             for square in *board.color_combined(color) & !retractable & !steady {
                 let piece = board.piece_on(square).unwrap();
-                let preds = predecessors(piece, color, square);
+                let mut preds = predecessors(piece, color, square);
+
+                // A piece on its promotion rank may have arrived by promotion,
+                // so it can also retract to a pawn predecessor.
+                if piece != Piece::King
+                    && BitBoard::from_square(square) & get_rank(color.to_their_backrank()) != EMPTY
+                {
+                    preds |= predecessors(Piece::Pawn, color, square);
+                }
 
                 if preds & retractable != EMPTY {
                     retractable |= BitBoard::from_square(square);
