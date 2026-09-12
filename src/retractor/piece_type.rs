@@ -218,14 +218,15 @@ impl PieceType for PawnType {
                     between(checker, opp_ksq)
                 };
 
-            // pawn unpushes
-            let mut targets = BitBoard::from_square(src.ubackward(retracting_color));
+            // pawn unpushes (a double push requires the crossed square to be
+            // empty as well)
+            let crossed = src.ubackward(retracting_color);
+            let mut targets = BitBoard::from_square(crossed);
             if src.get_rank() == retracting_color.to_fourth_rank()
                 && board.en_passant() == EnPassantFlag::Any
+                && BitBoard::from_square(crossed) & combined == EMPTY
             {
-                targets |= BitBoard::from_square(
-                    src.ubackward(retracting_color).ubackward(retracting_color),
-                );
+                targets |= BitBoard::from_square(crossed.ubackward(retracting_color));
             }
             targets &= !combined & !check_mask & !first_rank & other_checker_ray & mask;
             if BitBoard::from_square(src) & pinned != EMPTY {

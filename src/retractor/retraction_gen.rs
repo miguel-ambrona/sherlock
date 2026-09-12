@@ -450,6 +450,9 @@ fn test_nb_retractions() {
         ("2k1R3/K7/8/5B2/8/8/8/8 b - -", 5),
         ("2k4R/K7/4B3/8/8/8/8/8 b - -", 6),
         ("BQRNNRQB/8/1PPPPPPP/8/8/8/8/2k3K1 b - -", 244),
+        // no double push through an occupied square
+        ("4k3/8/8/8/2P5/2N5/8/4K3 b - -", 83),
+        ("4k3/8/8/8/2P5/8/2N5/4K3 b - -", 66),
     ]
     .iter()
     .for_each(|(fen, n)| {
