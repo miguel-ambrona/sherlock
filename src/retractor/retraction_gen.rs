@@ -415,7 +415,7 @@ fn test_nb_retractions() {
         ("N6K/2p5/1k6/8/8/8/8/8 b - -", 5),
         ("N6K/2pk4/8/8/8/8/8/8 b - -", 20),
         ("N7/2pk4/8/8/8/8/8/4K2R b K -", 5),
-        ("8/8/8/1P3r2/BpPk4/1p1b4/P5PP/R3K3 b Q -", 1),
+        ("8/8/8/1P3r2/BpPk4/1p1b4/P5PP/R3K3 b Q c3", 1),
         ("4k2r/8/8/8/8/3P1P2/4p3/4K3 w k -", 1),
         ("8/8/8/8/6P1/5N1p/5K1P/4N1Bk w - -", 1),
         ("8/4k3/8/KP4Pp/pP6/8/8/8 w - h6", 1),
@@ -450,17 +450,23 @@ fn test_nb_retractions() {
         ("2k1R3/K7/8/5B2/8/8/8/8 b - -", 5),
         ("2k4R/K7/4B3/8/8/8/8/8 b - -", 6),
         ("BQRNNRQB/8/1PPPPPPP/8/8/8/8/2k3K1 b - -", 244),
+        // no double push through an occupied square
+        ("4k3/8/8/8/2P5/2N5/8/4K3 b - -", 83),
+        ("4k3/8/8/8/2P5/8/2N5/4K3 b - -", 66),
+        // without an ep flag, a double push may be retracted only if no enemy
+        // pawn can capture it en passant
+        ("rnbqkbnr/pppppppp/8/8/7P/8/PPPPPPP1/RNBQKBNR b KQkq -", 6),
+        ("rnbqkbnr/pppppp1p/8/8/6pP/8/PPPPPPP1/RNBQKBNR b KQkq -", 5),
     ]
     .iter()
     .for_each(|(fen, n)| {
         let board = Board::from_str(fen).unwrap();
-        let mut retractable_board: RetractableBoard = board.into();
-        retractable_board.set_uncertain_ep();
+        let retractable_board: RetractableBoard = board.into();
         let iterable = RetractionGen::new_legal(&retractable_board);
         let mut cnt = 0;
         for _r in iterable {
             cnt += 1;
         }
-        assert_eq!(cnt, *n);
+        assert_eq!(cnt, *n, "{}", fen);
     })
 }
