@@ -23,9 +23,11 @@ pub(crate) enum EnPassantFlag {
 ///
 /// Unlike a normal board, the en-passant information after a retraction may be
 /// uncertain, we allow the en-passant flag to take three forms:
-///  - Any
-///  - Some(Square)
-///  - None
+///  - Any: the last move is unknown.
+///  - Some(Square): the last move was a double pawn push to that square.
+///  - None: no en-passant capture is available (FEN's `-`). Note that the
+///    last move may have been a double pawn push, as long as no enemy pawn
+///    can capture it en passant in the current position.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct RetractableBoard {
     pieces: [BitBoard; NUM_PIECES],

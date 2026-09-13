@@ -219,11 +219,18 @@ impl PieceType for PawnType {
                 };
 
             // pawn unpushes (a double push requires the crossed square to be
-            // empty as well)
+            // empty as well, and, if no en-passant capture is available, no
+            // enemy pawn next to the pushed pawn)
             let crossed = src.ubackward(retracting_color);
             let mut targets = BitBoard::from_square(crossed);
+            let enemy_pawns = board.pieces(Piece::Pawn) & !retracting_pieces;
+            let ep_capturers = get_adjacent_files(src.get_file()) & get_rank(src.get_rank());
             if src.get_rank() == retracting_color.to_fourth_rank()
-                && board.en_passant() == EnPassantFlag::Any
+                && match board.en_passant() {
+                    EnPassantFlag::Any => true,
+                    EnPassantFlag::None => ep_capturers & enemy_pawns == EMPTY,
+                    EnPassantFlag::Some(_) => false,
+                }
                 && BitBoard::from_square(crossed) & combined == EMPTY
             {
                 targets |= BitBoard::from_square(crossed.ubackward(retracting_color));
