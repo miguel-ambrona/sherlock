@@ -70,8 +70,7 @@ impl SourceAndTargets {
 ///  - 7 for pawn en-passant uncaptures
 ///  - 8 officer retractions
 ///  - 2 for king retractions (uncastling is not an option given that all
-///    officers are on the 8th rank)
-///    which makes a total of 47.
+///    officers are on the 8th rank) which makes a total of 47.
 ///
 /// TODO: Double-check this and reduce it by modifying the `SourceAndTargets`
 /// type. We could have several target bitboard depending on the uncapture kind

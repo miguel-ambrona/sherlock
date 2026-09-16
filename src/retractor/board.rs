@@ -12,22 +12,24 @@ use chess::{
 
 use super::{chess_retraction::ChessRetraction, zobrist::Zobrist};
 
+/// The en-passant information of a [RetractableBoard], which, unlike that of
+/// a normal board, may be uncertain.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub(crate) enum EnPassantFlag {
+pub enum EnPassantFlag {
+    /// The last move is unknown.
     Any,
+    /// The last move was a double pawn push to that square.
     Some(Square),
+    /// No en-passant capture is available (FEN's `-`). Note that the last
+    /// move may have been a double pawn push, as long as no enemy pawn can
+    /// capture it en passant in the current position.
     None,
 }
 
 /// A representation of a retractable chess board.
 ///
 /// Unlike a normal board, the en-passant information after a retraction may be
-/// uncertain, we allow the en-passant flag to take three forms:
-///  - Any: the last move is unknown.
-///  - Some(Square): the last move was a double pawn push to that square.
-///  - None: no en-passant capture is available (FEN's `-`). Note that the
-///    last move may have been a double pawn push, as long as no enemy pawn
-///    can capture it en passant in the current position.
+/// uncertain, see [EnPassantFlag].
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct RetractableBoard {
     pieces: [BitBoard; NUM_PIECES],
@@ -234,8 +236,9 @@ impl RetractableBoard {
         unsafe { self.color_combined.get_unchecked(color.to_index()) }
     }
 
-    /// The en_passant flag.
-    pub(crate) fn en_passant(self) -> EnPassantFlag {
+    /// The en-passant flag.
+    #[inline]
+    pub fn en_passant(&self) -> EnPassantFlag {
         self.en_passant
     }
 
@@ -263,13 +266,27 @@ impl RetractableBoard {
         (self.pieces(Piece::King) & self.color_combined(color)).to_square()
     }
 
+    /// Set the en-passant flag.
+    ///
+    /// # WARNING
+    ///
+    /// The Zobrist hash of the flag depends on the side to move, so
+    /// `self.side_to_move` must hold its final value before calling this
+    /// function; changing the side to move afterwards would leave the hash
+    /// inconsistent.
+    #[inline]
+    pub fn set_en_passant(&mut self, en_passant: EnPassantFlag) {
+        self.hash ^=
+            self.en_passant.zobrist(self.side_to_move) ^ en_passant.zobrist(self.side_to_move);
+        self.en_passant = en_passant;
+    }
+
     /// Specify that the en-passant information is uncertain, this will only
     /// have an effect if the en-passant flag is currently set to `None`.
     #[inline]
     pub fn set_uncertain_ep(&mut self) {
         if self.en_passant == EnPassantFlag::None {
-            self.hash ^= Zobrist::ep_any();
-            self.en_passant = EnPassantFlag::Any;
+            self.set_en_passant(EnPassantFlag::Any);
         }
     }
 
