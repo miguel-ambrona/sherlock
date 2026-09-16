@@ -267,6 +267,13 @@ impl RetractableBoard {
     }
 
     /// Set the en-passant flag.
+    ///
+    /// # WARNING
+    ///
+    /// The Zobrist hash of the flag depends on the side to move, so
+    /// `self.side_to_move` must hold its final value before calling this
+    /// function; changing the side to move afterwards would leave the hash
+    /// inconsistent.
     #[inline]
     pub fn set_en_passant(&mut self, en_passant: EnPassantFlag) {
         self.hash ^=
