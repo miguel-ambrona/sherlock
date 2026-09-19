@@ -18,7 +18,12 @@ pub fn find_k_group(
     sets: &[BitBoard; 64],
     indices: BitBoard,
 ) -> Option<(BitBoard, BitBoard)> {
-    find_k_group_recursively(k, sets, indices, (EMPTY, 0))
+    // A set with more than `k` elements cannot be part of a `k`-group.
+    let candidates = indices
+        .filter(|square| sets[square.to_index()].popcnt() as usize <= k)
+        .fold(EMPTY, |acc, square| acc | BitBoard::from_square(square));
+    find_k_group_recursively(k, sets, candidates, (EMPTY, 0))
+        .map(|(group, remaining)| (group, remaining | (indices & !candidates)))
 }
 
 fn find_k_group_recursively(
@@ -33,6 +38,9 @@ fn find_k_group_recursively(
     }
     if group.1 >= k {
         return Some((group.0, remaining_indices));
+    }
+    if group.1 + (remaining_indices.popcnt() as usize) < k {
+        return None;
     }
     let mut remaining = remaining_indices.into_iter();
     if let Some(square) = remaining.next() {
