@@ -52,12 +52,14 @@ impl MobilityGraph {
     }
 
     /// Whether there exists a move between the two given squares.
+    #[cfg(test)]
     pub fn exists_edge(&self, source: Square, target: Square) -> bool {
         self.moves_from(source) & BitBoard::from_square(target) != EMPTY
     }
 
     /// Makes sure the move between the given squares disappears from the
     /// graph. Returns `true` iff this operation modifies the graph.
+    #[cfg(test)]
     pub fn remove_edge(&mut self, source: Square, target: Square) -> bool {
         let existed = self.exists_edge(source, target);
         let target = BitBoard::from_square(target);
@@ -78,9 +80,33 @@ impl MobilityGraph {
     /// Makes sure the graph does not have moves to the given square.
     /// Returns `true` iff this operation modifies the graph.
     pub fn remove_incoming_edges(&mut self, target: Square) -> bool {
+        self.remove_edges_into(BitBoard::from_square(target))
+    }
+
+    /// Makes sure the graph does not have moves to any of the given squares.
+    /// Returns `true` iff this operation modifies the graph.
+    pub fn remove_edges_into(&mut self, targets: BitBoard) -> bool {
         let mut existed = false;
-        for source in ALL_SQUARES {
-            existed |= self.remove_edge(source, target);
+        for source in 0..NUM_SQUARES {
+            existed |= (self.quiet[source] | self.captures[source]) & targets != EMPTY;
+            self.quiet[source] &= !targets;
+            self.captures[source] &= !targets;
+        }
+        existed
+    }
+
+    /// Makes sure the graph does not have moves from any of the `sources` to
+    /// any of the `targets`, nor the other way around.
+    /// Returns `true` iff this operation modifies the graph.
+    pub fn remove_edges_between(&mut self, sources: BitBoard, targets: BitBoard) -> bool {
+        let mut existed = false;
+        for (from, to) in [(sources, targets), (targets, sources)] {
+            for source in from {
+                let i = source.to_index();
+                existed |= (self.quiet[i] | self.captures[i]) & to != EMPTY;
+                self.quiet[i] &= !to;
+                self.captures[i] &= !to;
+            }
         }
         existed
     }
