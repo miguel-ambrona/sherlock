@@ -4,8 +4,8 @@ use chess::{
     get_pawn_attacks, get_rank, BitBoard, Color, Piece, Square, ALL_SQUARES, EMPTY, NUM_SQUARES,
 };
 use petgraph::{
-    algo::{astar, dijkstra},
-    graph::{DiGraph, EdgeIndex, EdgeReference, NodeIndex},
+    algo::dijkstra,
+    graph::{DiGraph, EdgeIndex, NodeIndex},
     visit::EdgeRef,
     Direction::{Incoming, Outgoing},
 };
@@ -156,48 +156,74 @@ impl MobilityGraph {
         distances
     }
 
-    /// Returns a `BitBoard` with all the squares where a capture must have
-    /// taken place for going from `source` to `target` in this mobility
-    /// graph, with at most `allowed_nb_captures`.
+    /// The squares where a capture must have taken place for going from
+    /// `source` to each target in this mobility graph, with at most
+    /// `allowed_nb_captures` (`EMPTY` for the targets that cannot be reached
+    /// within that many).
     ///
-    /// This function returns `EMPTY` if the route is impossible.
-    pub fn forced_captures(
+    /// A square is *forced* for a target when every route to it within the
+    /// budget arrives at that square by a capturing edge.
+    pub fn forced_captures_from(
         &self,
         source: Square,
-        target: Square,
         allowed_nb_captures: u8,
-    ) -> BitBoard {
-        let source = self.node(source);
-        let finish = |n| n == self.node(target);
-        match astar(&self.graph, source, finish, |e| *e.weight(), |_| 0) {
-            None => EMPTY,
-            Some((distance, path)) => {
-                debug_assert!(distance <= allowed_nb_captures as u32);
-                let mut forced = EMPTY;
-                for node in path.iter().skip(1) {
-                    // If after significantly increasing the weight of capturing edges that arrive
-                    // to `node`, the distance from source to target surpasses the allowed number of
-                    // captures, it must be the case that `node` is an essential (capturing) square.
-
-                    const DELTA: u32 = 1000;
-                    let new_weights = |e: EdgeReference<u32, u32>| {
-                        let mut weight = *e.weight();
-                        if weight == 1 && e.target() == *node {
-                            weight += DELTA;
-                        }
-                        weight
+    ) -> [BitBoard; NUM_SQUARES] {
+        // The routes of interest are those of at most `allowed_nb_captures`
+        // capturing edges, so it is enough to know, for every square and
+        // every number of captures spent to get there, which squares all
+        // such routes capture on: `forced[n][square]`. A square that no such
+        // route reaches is marked as unvisited (`None`).
+        let budget = allowed_nb_captures as usize;
+        let mut forced: Vec<[Option<BitBoard>; NUM_SQUARES]> =
+            vec![[None; NUM_SQUARES]; budget + 1];
+        forced[0][source.to_index()] = Some(EMPTY);
+        for spent in 0..=budget {
+            // (a capturing edge moves a square to the next number of
+            // captures, so the routes of `spent` captures are complete once
+            // the quiet edges have been followed to exhaustion)
+            let mut pending: Vec<Square> = ALL_SQUARES
+                .into_iter()
+                .filter(|s| forced[spent][s.to_index()].is_some())
+                .collect();
+            while let Some(square) = pending.pop() {
+                let routes = forced[spent][square.to_index()].unwrap();
+                for edge in self.graph.edges_directed(self.node(square), Outgoing) {
+                    let target = ALL_SQUARES[edge.target().index()];
+                    let capture = *edge.weight() == 1;
+                    if capture && spent == budget {
+                        continue;
+                    }
+                    let (level, routes) = match capture {
+                        true => (spent + 1, routes | BitBoard::from_square(target)),
+                        false => (spent, routes),
                     };
-                    let node_map =
-                        dijkstra(&self.graph, source, Some(self.node(target)), new_weights);
-                    if let Some(new_distance) = node_map.get(&self.node(target)).copied() {
-                        if new_distance > allowed_nb_captures as u32 {
-                            forced |= BitBoard::from_square(ALL_SQUARES[node.index()])
+                    let known = &mut forced[level][target.to_index()];
+                    let updated = match known {
+                        // The routes that arrive with the same number of
+                        // captures force what all of them force.
+                        Some(previous) => *previous & routes,
+                        None => routes,
+                    };
+                    if *known != Some(updated) {
+                        *known = Some(updated);
+                        if !capture {
+                            pending.push(target);
                         }
                     }
                 }
-                forced
             }
         }
+        // A square is forced for a target when all the routes force it,
+        // whatever the number of captures they spend.
+        core::array::from_fn(|i| {
+            forced
+                .iter()
+                .filter_map(|level| level[i])
+                .fold(None, |all: Option<BitBoard>, routes| {
+                    Some(all.map_or(routes, |all| all & routes))
+                })
+                .unwrap_or(EMPTY)
+        })
     }
 }
 
