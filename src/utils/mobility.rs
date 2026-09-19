@@ -192,50 +192,60 @@ impl MobilityGraph {
         // The routes of interest are those of at most `allowed_nb_captures`
         // captures, so it is enough to know, for every square and every
         // number of captures spent to get there, the squares that all such
-        // routes capture on: `forced[spent][square]`, `None` for the squares
-        // that no such route reaches.
-        let budget = allowed_nb_captures as usize;
-        let mut forced: Vec<[Option<BitBoard>; NUM_SQUARES]> =
-            vec![[None; NUM_SQUARES]; budget + 1];
-        forced[0][source.to_index()] = Some(EMPTY);
+        // routes capture on: `current[square]` for the level being explored,
+        // `None` for the squares that no such route reaches. A square is
+        // forced for a target when the routes force it whatever the number
+        // of captures they spend, so the levels are combined by intersection
+        // into `forced` as they complete.
+        let budget = (allowed_nb_captures as usize).min(UNREACHABLE as usize - 1);
+        let mut forced = [None; NUM_SQUARES];
+        let mut current = [None; NUM_SQUARES];
+        current[source.to_index()] = Some(EMPTY);
+        // the squares reached at the current level
+        let mut reached = BitBoard::from_square(source);
         for spent in 0..=budget {
-            let mut pending = ALL_SQUARES
-                .into_iter()
-                .filter(|square| forced[spent][square.to_index()].is_some())
-                .fold(EMPTY, |acc, square| acc | BitBoard::from_square(square));
             // Quiet moves keep the number of captures, so the routes that
             // spend `spent` of them are complete once these are exhausted.
+            let mut pending = reached;
             while pending != EMPTY {
                 let square = pending.to_square();
                 pending &= !BitBoard::from_square(square);
-                let routes = forced[spent][square.to_index()].unwrap();
+                let routes = current[square.to_index()].unwrap();
                 for target in self.quiet[square.to_index()] {
-                    if update(&mut forced[spent][target.to_index()], routes) {
+                    if update(&mut current[target.to_index()], routes) {
                         pending |= BitBoard::from_square(target);
+                        reached |= BitBoard::from_square(target);
                     }
                 }
+            }
+            for square in reached {
+                update(
+                    &mut forced[square.to_index()],
+                    current[square.to_index()].unwrap(),
+                );
             }
             if spent == budget {
                 break;
             }
-            for square in ALL_SQUARES {
-                if let Some(routes) = forced[spent][square.to_index()] {
-                    for target in self.captures[square.to_index()] {
-                        let routes = routes | BitBoard::from_square(target);
-                        update(&mut forced[spent + 1][target.to_index()], routes);
-                    }
+            let mut next = [None; NUM_SQUARES];
+            let mut next_reached = EMPTY;
+            for square in reached {
+                let routes = current[square.to_index()].unwrap();
+                for target in self.captures[square.to_index()] {
+                    update(
+                        &mut next[target.to_index()],
+                        routes | BitBoard::from_square(target),
+                    );
+                    next_reached |= BitBoard::from_square(target);
                 }
             }
+            if next_reached == EMPTY {
+                break;
+            }
+            current = next;
+            reached = next_reached;
         }
-        // A square is forced for a target when the routes force it whatever
-        // the number of captures they spend.
-        core::array::from_fn(|square| {
-            forced
-                .iter()
-                .filter_map(|level| level[square])
-                .reduce(|forced, routes| forced & routes)
-                .unwrap_or(EMPTY)
-        })
+        core::array::from_fn(|square| forced[square].unwrap_or(EMPTY))
     }
 }
 
