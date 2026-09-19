@@ -3,7 +3,7 @@
 //! This rule filters the set of reachable squares of every piece by removing
 //! the squares for which there does not exists a path from its original square.
 
-use chess::{get_rank, BitBoard, Color, Piece, Square, ALL_COLORS, EMPTY};
+use chess::{get_rank, BitBoard, Piece, ALL_COLORS, EMPTY};
 
 use super::{Rule, COLOR_ORIGINS};
 use crate::{analysis::Analysis, utils::origin_piece};
@@ -49,15 +49,30 @@ impl Rule for RouteToReachable {
 
         for color in ALL_COLORS {
             for square in COLOR_ORIGINS[color.to_index()] {
-                let piece = origin_piece(square);
-                let nb_allowed_captures = analysis.nb_captures_upper_bound(square);
-                let mut reachable_targets = BitBoard::from_square(square);
-                for target in analysis.reachable(square) & !analysis.steady.value {
-                    let n = distance_to_target(analysis, square, target, piece, color);
-                    if n <= nb_allowed_captures as u8 {
-                        reachable_targets |= BitBoard::from_square(target);
-                    }
-                }
+                let nb_allowed_captures = analysis.nb_captures_upper_bound(square) as u8;
+                let candidates = analysis.reachable(square) & !analysis.steady.value;
+                let file = square.get_file();
+                let reachable_targets = if origin_piece(square) == Piece::Pawn {
+                    // (the pawn may promote and then reach the target without
+                    // further captures)
+                    let promotion_distance = get_rank(color.to_their_backrank())
+                        .map(|promoting| analysis.pawn_capture_distances(color, file, promoting))
+                        .min()
+                        .unwrap();
+                    candidates
+                        .filter(|target| {
+                            analysis
+                                .pawn_capture_distances(color, file, *target)
+                                .min(promotion_distance)
+                                <= nb_allowed_captures
+                        })
+                        .fold(EMPTY, |acc, target| acc | BitBoard::from_square(target))
+                } else if nb_allowed_captures >= 16 {
+                    candidates
+                } else {
+                    candidates & analysis.reachable_from_origin(color, file)
+                };
+                let reachable_targets = reachable_targets | BitBoard::from_square(square);
                 progress |= analysis.update_reachable(square, reachable_targets);
             }
         }
@@ -73,12 +88,13 @@ impl Rule for RouteToReachable {
 ///
 /// If the piece is a pawn, it is allowed to promote in order to reach
 /// the target.
+#[cfg(test)]
 pub fn distance_to_target(
     analysis: &Analysis,
-    origin: Square,
-    target: Square,
+    origin: chess::Square,
+    target: chess::Square,
     piece: Piece,
-    color: Color,
+    color: chess::Color,
 ) -> u8 {
     // if the piece is a pawn and can promote, we assume it can then reach the
     // target without further captures
