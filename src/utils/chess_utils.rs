@@ -3,7 +3,7 @@
 use chess::{
     get_bishop_moves, get_bishop_rays, get_file, get_king_moves, get_knight_moves,
     get_pawn_attacks, get_pawn_quiets, get_rank, get_rook_moves, get_rook_rays, BitBoard, Color,
-    Piece, Rank, Square, EMPTY,
+    File, Piece, Rank, Square, EMPTY,
 };
 
 use super::LIGHT_SQUARES;
@@ -46,6 +46,21 @@ pub fn origin_color(origin: Square) -> Color {
     match origin.get_rank() {
         Rank::First | Rank::Second => Color::White,
         Rank::Seventh | Rank::Eighth => Color::Black,
+        _ => panic!("Not an origin square"),
+    }
+}
+
+/// The type of the piece that starts the game on the given origin square.
+pub fn origin_piece(origin: Square) -> Piece {
+    match origin.get_rank() {
+        Rank::Second | Rank::Seventh => Piece::Pawn,
+        Rank::First | Rank::Eighth => match origin.get_file() {
+            File::A | File::H => Piece::Rook,
+            File::B | File::G => Piece::Knight,
+            File::C | File::F => Piece::Bishop,
+            File::D => Piece::Queen,
+            File::E => Piece::King,
+        },
         _ => panic!("Not an origin square"),
     }
 }

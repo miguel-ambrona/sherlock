@@ -6,9 +6,10 @@
 //!  - pawn_capture_distances
 //!  - pawn_forced_captures
 
-use chess::{Board, Piece, Square, ALL_COLORS, ALL_FILES, ALL_SQUARES, PROMOTION_PIECES};
+use chess::{Piece, Square, ALL_COLORS, ALL_FILES, ALL_SQUARES, PROMOTION_PIECES};
 
 use super::{Analysis, Rule};
+use crate::utils::origin_piece;
 
 #[derive(Debug)]
 pub struct MobilityRule {
@@ -46,7 +47,7 @@ impl Rule for MobilityRule {
             let rank = color.to_my_backrank();
             for file in ALL_FILES {
                 let square = Square::make_square(rank, file);
-                let piece = Board::default().piece_on(square).unwrap();
+                let piece = origin_piece(square);
                 let reachable = analysis.mobility.value[color.to_index()][piece.to_index()]
                     .reachable_from_source(square);
                 progress |= analysis.update_reachable_from_origin(color, file, reachable)

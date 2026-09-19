@@ -3,10 +3,10 @@
 //! This rule filters the set of reachable squares of every piece by removing
 //! the squares for which there does not exists a path from its original square.
 
-use chess::{get_rank, BitBoard, Board, Color, Piece, Square, ALL_COLORS, EMPTY};
+use chess::{get_rank, BitBoard, Color, Piece, Square, ALL_COLORS, EMPTY};
 
 use super::{Rule, COLOR_ORIGINS};
-use crate::analysis::Analysis;
+use crate::{analysis::Analysis, utils::origin_piece};
 
 #[derive(Debug)]
 pub struct RouteToReachable {
@@ -49,7 +49,7 @@ impl Rule for RouteToReachable {
 
         for color in ALL_COLORS {
             for square in COLOR_ORIGINS[color.to_index()] {
-                let piece = Board::default().piece_on(square).unwrap();
+                let piece = origin_piece(square);
                 let nb_allowed_captures = analysis.nb_captures_upper_bound(square);
                 let mut reachable_targets = BitBoard::from_square(square);
                 for target in analysis.reachable(square) & !analysis.steady.value {

@@ -6,12 +6,12 @@
 
 use std::collections::HashMap;
 
-use chess::{get_rank, BitBoard, Board, Color, Piece, Square, ALL_COLORS, EMPTY};
+use chess::{get_rank, BitBoard, Color, Piece, Square, ALL_COLORS, EMPTY};
 
 use super::{Analysis, Rule};
 use crate::{
     rules::ALL_ORIGINS,
-    utils::{origin_color, LIGHT_SQUARES},
+    utils::{origin_color, origin_piece, LIGHT_SQUARES},
     Legality,
 };
 
@@ -128,7 +128,7 @@ fn path_parity(analysis: &Analysis, origin: Square, target: Square) -> Option<u8
     // `Some n` if such 2-coloring exists, in that case `n = 0` if the colors of
     // `source` and `target` are the same and `n = 1` otherwise
     debug_assert!(BitBoard::from_square(origin) & ALL_ORIGINS != EMPTY);
-    let piece = Board::default().piece_on(origin).unwrap();
+    let piece = origin_piece(origin);
     let color = origin_color(origin);
     let mobility = &analysis.mobility.value[color.to_index()][piece.to_index()];
     let reachable_from_origin = analysis.reachable(origin);

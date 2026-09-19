@@ -8,7 +8,7 @@
 //! If at any point a lower bound exceeds the corresponding upper bound, the
 //! position can be declared to be illegal.
 
-use chess::{BitBoard, Board, ALL_COLORS};
+use chess::{BitBoard, ALL_COLORS};
 
 use super::{Analysis, Rule, COLOR_ORIGINS};
 use crate::Legality::Illegal;
@@ -45,7 +45,7 @@ impl Rule for CapturesBoundsRule {
             let sum_lower_bounds =
                 sum_lower_bounds_nb_captures(analysis, COLOR_ORIGINS[color.to_index()]);
 
-            for square in *Board::default().color_combined(color) {
+            for square in COLOR_ORIGINS[color.to_index()] {
                 // steady pieces never moved, thus never captured
                 if analysis.is_steady(square) {
                     progress |= analysis.update_captures_upper_bound(square, 0);
