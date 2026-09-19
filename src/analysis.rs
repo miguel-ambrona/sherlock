@@ -1,9 +1,8 @@
 use std::fmt;
 
 use chess::{
-    get_bishop_rays, get_rank, get_rook_rays, BitBoard, Color, File, Piece, Square, ALL_COLORS,
-    ALL_FILES, ALL_PIECES, ALL_SQUARES, EMPTY, NUM_COLORS, NUM_FILES, NUM_PIECES,
-    NUM_PROMOTION_PIECES, NUM_SQUARES, PROMOTION_PIECES,
+    get_rank, BitBoard, Color, File, Piece, Square, ALL_COLORS, ALL_FILES, ALL_PIECES, ALL_SQUARES,
+    EMPTY, NUM_COLORS, NUM_FILES, NUM_PIECES, NUM_PROMOTION_PIECES, NUM_SQUARES, PROMOTION_PIECES,
 };
 
 use crate::{
@@ -491,26 +490,16 @@ impl Analysis {
     }
 
     /// Updates the mobility graph of the given piece and the given color, by
-    /// removing all the connections that pass through the given square.
+    /// removing all the connections into, from, or through the given squares.
     /// Returns a boolean value indicating whether the update changed anything.
-    pub(crate) fn remove_edges_passing_through_square(
+    pub(crate) fn remove_edges_touching(
         &mut self,
         piece: Piece,
         color: Color,
-        square: Square,
+        squares: BitBoard,
     ) -> bool {
-        let mut progress = false;
-        for source in get_rook_rays(square) | get_bishop_rays(square) {
-            for target in chess::line(square, source)
-                & !BitBoard::from_square(square)
-                & !BitBoard::from_square(source)
-            {
-                if (BitBoard::from_square(square) & chess::between(source, target)) != EMPTY {
-                    progress |= self.mobility.value[color.to_index()][piece.to_index()]
-                        .remove_edge(source, target);
-                }
-            }
-        }
+        let progress =
+            self.mobility.value[color.to_index()][piece.to_index()].remove_edges_touching(squares);
         if progress {
             self.mobility.counter += 1
         }

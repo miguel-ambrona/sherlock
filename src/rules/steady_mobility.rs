@@ -31,13 +31,10 @@ impl Rule for SteadyMobilityRule {
         let mut progress = false;
 
         // Remove all arrows from/into or that pass through a steady piece
-        for square in analysis.steady.value {
-            for color in ALL_COLORS {
-                for piece in ALL_PIECES {
-                    progress |= analysis.remove_incoming_edges(piece, color, square);
-                    progress |= analysis.remove_outgoing_edges(piece, color, square);
-                    progress |= analysis.remove_edges_passing_through_square(piece, color, square);
-                }
+        let steady = analysis.steady.value;
+        for color in ALL_COLORS {
+            for piece in ALL_PIECES {
+                progress |= analysis.remove_edges_touching(piece, color, steady);
             }
         }
 

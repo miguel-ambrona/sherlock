@@ -7,7 +7,8 @@
 //! that remain.
 
 use chess::{
-    get_pawn_attacks, get_rank, BitBoard, Color, Piece, Square, ALL_SQUARES, EMPTY, NUM_SQUARES,
+    get_bishop_moves, get_pawn_attacks, get_pawn_quiets, get_rank, get_rook_moves, BitBoard, Color,
+    Piece, Square, ALL_SQUARES, EMPTY, NUM_SQUARES,
 };
 
 use super::moves_on_empty_board;
@@ -16,6 +17,8 @@ use super::moves_on_empty_board;
 /// as the squares reachable from each square, by a quiet move or by a
 /// capture.
 pub struct MobilityGraph {
+    piece: Piece,
+    color: Color,
     quiet: [BitBoard; NUM_SQUARES],
     captures: [BitBoard; NUM_SQUARES],
 }
@@ -26,6 +29,8 @@ impl MobilityGraph {
     /// way that changes its route).
     pub fn init(piece: Piece, color: Color) -> Self {
         let mut graph = MobilityGraph {
+            piece,
+            color,
             quiet: [EMPTY; NUM_SQUARES],
             captures: [EMPTY; NUM_SQUARES],
         };
@@ -78,6 +83,33 @@ impl MobilityGraph {
             existed |= self.remove_edge(source, target);
         }
         existed
+    }
+
+    /// Makes sure no move goes into, out of, or through any of the given
+    /// squares. Returns `true` iff this operation modifies the graph.
+    pub fn remove_edges_touching(&mut self, squares: BitBoard) -> bool {
+        let mut modified = false;
+        for source in ALL_SQUARES {
+            let i = source.to_index();
+            let (quiet, captures) = if BitBoard::from_square(source) & squares != EMPTY {
+                (EMPTY, EMPTY)
+            } else {
+                let allowed = match self.piece {
+                    Piece::Rook => get_rook_moves(source, squares),
+                    Piece::Bishop => get_bishop_moves(source, squares),
+                    Piece::Queen => {
+                        get_rook_moves(source, squares) | get_bishop_moves(source, squares)
+                    }
+                    Piece::Pawn => get_pawn_quiets(source, self.color, squares),
+                    Piece::King | Piece::Knight => !EMPTY,
+                } & !squares;
+                (self.quiet[i] & allowed, self.captures[i] & !squares)
+            };
+            modified |= quiet != self.quiet[i] || captures != self.captures[i];
+            self.quiet[i] = quiet;
+            self.captures[i] = captures;
+        }
+        modified
     }
 
     /// The squares from which there exists a move to the given `target`.
