@@ -83,14 +83,15 @@ impl Rule for MobilityRule {
             let rank = color.to_second_rank();
             for file in ALL_FILES {
                 let square = Square::make_square(rank, file);
+                let nb_allowed_captures = analysis.nb_captures_upper_bound(square) as u8;
+                let forced = analysis.mobility.value[color.to_index()][Piece::Pawn.to_index()]
+                    .forced_captures_from(square, nb_allowed_captures);
                 for target in ALL_SQUARES {
                     let n = analysis.pawn_capture_distances(color, file, target);
-                    let nb_allowed_captures = analysis.nb_captures_upper_bound(square) as u8;
                     if n == 0 || n > nb_allowed_captures {
                         continue;
                     }
-                    let forced = analysis.mobility.value[color.to_index()][Piece::Pawn.to_index()]
-                        .forced_captures(square, target, nb_allowed_captures);
+                    let forced = forced[target.to_index()];
                     progress |= analysis.update_pawn_forced_captures(color, file, target, forced);
                 }
             }
