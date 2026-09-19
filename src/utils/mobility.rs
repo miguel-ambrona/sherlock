@@ -47,7 +47,6 @@ impl MobilityGraph {
     }
 
     /// Whether there exists a move between the two given squares.
-    #[cfg(test)]
     pub fn exists_edge(&self, source: Square, target: Square) -> bool {
         self.moves_from(source) & BitBoard::from_square(target) != EMPTY
     }
@@ -55,16 +54,11 @@ impl MobilityGraph {
     /// Makes sure the move between the given squares disappears from the
     /// graph. Returns `true` iff this operation modifies the graph.
     pub fn remove_edge(&mut self, source: Square, target: Square) -> bool {
-        let existed = self.exists_move(source, target);
+        let existed = self.exists_edge(source, target);
         let target = BitBoard::from_square(target);
         self.quiet[source.to_index()] &= !target;
         self.captures[source.to_index()] &= !target;
         existed
-    }
-
-    /// Whether there exists a move between the two given squares.
-    fn exists_move(&self, source: Square, target: Square) -> bool {
-        self.moves_from(source) & BitBoard::from_square(target) != EMPTY
     }
 
     /// Makes sure the graph does not have moves from the given square.
@@ -99,7 +93,7 @@ impl MobilityGraph {
     /// graph. Returns `true` iff this operation modifies the graph.
     #[allow(dead_code)]
     pub fn remove_node_edges(&mut self, node: Square) -> bool {
-        self.remove_outgoing_edges(node) || self.remove_incoming_edges(node)
+        self.remove_outgoing_edges(node) | self.remove_incoming_edges(node)
     }
 
     /// The least number of captures on a route from `source` to `target`,
@@ -173,17 +167,19 @@ impl MobilityGraph {
             vec![[None; NUM_SQUARES]; budget + 1];
         forced[0][source.to_index()] = Some(EMPTY);
         for spent in 0..=budget {
-            let mut pending: Vec<Square> = ALL_SQUARES
+            let mut pending = ALL_SQUARES
                 .into_iter()
                 .filter(|square| forced[spent][square.to_index()].is_some())
-                .collect();
+                .fold(EMPTY, |acc, square| acc | BitBoard::from_square(square));
             // Quiet moves keep the number of captures, so the routes that
             // spend `spent` of them are complete once these are exhausted.
-            while let Some(square) = pending.pop() {
+            while pending != EMPTY {
+                let square = pending.to_square();
+                pending &= !BitBoard::from_square(square);
                 let routes = forced[spent][square.to_index()].unwrap();
                 for target in self.quiet[square.to_index()] {
                     if update(&mut forced[spent][target.to_index()], routes) {
-                        pending.push(target);
+                        pending |= BitBoard::from_square(target);
                     }
                 }
             }
@@ -268,5 +264,55 @@ mod tests {
         assert_eq!(white_pawn_mobility.distance(E2, F6), Some(1));
         assert_eq!(white_pawn_mobility.distance(E2, H4), None);
         assert_eq!(white_pawn_mobility.distance(E2, H5), Some(3));
+    }
+
+    #[test]
+    fn test_remove_edges() {
+        let mut graph = MobilityGraph::init(Pawn, White);
+        assert!(graph.remove_edge(A2, A3));
+        assert!(!graph.remove_edge(A2, A3));
+        assert!(graph.remove_outgoing_edges(H7));
+        assert!(!graph.exists_edge(H7, G8));
+        assert!(!graph.exists_edge(H7, H8));
+        assert!(!graph.remove_outgoing_edges(H7));
+        assert!(graph.remove_incoming_edges(D4));
+        assert_eq!(graph.predecessors(D4), EMPTY);
+        assert!(!graph.remove_incoming_edges(D4));
+        assert!(graph.remove_node_edges(E4));
+        assert_eq!(graph.moves_from(E4), EMPTY);
+        assert_eq!(graph.predecessors(E4), EMPTY);
+        assert_eq!(edge_count(&graph), 140 - 1 - 2 - 4 - 3 - 4);
+    }
+
+    #[test]
+    fn test_forced_captures() {
+        let mut graph = MobilityGraph::init(Pawn, White);
+        let forced = |graph: &MobilityGraph, target: Square, budget: u8| {
+            graph.forced_captures_from(E2, budget)[target.to_index()]
+        };
+        // both e3xd4 and exd3-d4 are possible, nothing is forced
+        assert_eq!(forced(&graph, D4, 1), EMPTY);
+        // the only route to d3 captures on d3
+        assert_eq!(forced(&graph, D3, 1), BitBoard::from_square(D3));
+        // squares that cannot be reached within the budget
+        assert_eq!(forced(&graph, D3, 0), EMPTY);
+        assert_eq!(forced(&graph, H4, 3), EMPTY);
+
+        graph.remove_edge(E2, E3);
+        // the only route to d4 with at most 1 capture is exd3-d4
+        assert_eq!(forced(&graph, D4, 1), BitBoard::from_square(D3));
+        assert_eq!(forced(&graph, D4, 2), BitBoard::from_square(D3));
+        assert_eq!(forced(&graph, F4, 1), BitBoard::from_square(F3));
+        // e2-e4 is still available, so nothing is forced to reach e4
+        assert_eq!(forced(&graph, E4, 2), EMPTY);
+        // exd3xe4 and exf3xe4 only agree on the capture on e4
+        graph.remove_edge(E2, E4);
+        assert_eq!(forced(&graph, E4, 2), BitBoard::from_square(E4));
+        graph.remove_edge(E2, F3);
+        assert_eq!(
+            forced(&graph, E4, 2),
+            BitBoard::from_square(D3) | BitBoard::from_square(E4)
+        );
+        assert_eq!(forced(&graph, E4, 1), EMPTY);
     }
 }
