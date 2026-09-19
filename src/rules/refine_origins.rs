@@ -51,8 +51,15 @@ impl Rule for RefineOriginsRule {
         for color in ALL_COLORS {
             // We iterate up to k = 10, since that is the maximum number of candidate
             // origins of any piece after applying the origins rule.
+            //
+            // The pieces of a k-group are left out of the search for larger
+            // groups: a larger group containing them would only tell us what
+            // its other pieces already tell us on their own (once the group's
+            // origins have been removed from every other piece, those other
+            // pieces form a group by themselves), and the rule is applied
+            // again whenever the origins change.
+            let mut iter = *analysis.board.color_combined(color);
             for k in 1..=10 {
-                let mut iter = *analysis.board.color_combined(color);
                 loop {
                     match find_k_group(k, &analysis.origins.value, iter) {
                         None => break,
