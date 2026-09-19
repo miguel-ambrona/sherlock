@@ -129,11 +129,20 @@ impl MobilityGraph {
         node_map.get(&self.node(target)).copied()
     }
 
+    /// The squares that can be reached from the given `source`, this one
+    /// included.
     pub fn reachable_from_source(&self, source: Square) -> BitBoard {
-        let node_map = dijkstra(&self.graph, self.node(source), None, |e| *e.weight());
-        let mut reachable = EMPTY;
-        for key in node_map.keys() {
-            reachable |= BitBoard::from_square(ALL_SQUARES[key.index()]);
+        // (a traversal, since the weights are irrelevant here)
+        let mut reachable = BitBoard::from_square(source);
+        let mut pending = vec![self.node(source)];
+        while let Some(node) = pending.pop() {
+            for successor in self.graph.neighbors_directed(node, Outgoing) {
+                let square = BitBoard::from_square(ALL_SQUARES[successor.index()]);
+                if reachable & square == EMPTY {
+                    reachable |= square;
+                    pending.push(successor);
+                }
+            }
         }
         reachable
     }
