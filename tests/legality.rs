@@ -104,6 +104,12 @@ fn test_legality_misc() {
 
         // Misc
         ("5b1B/4p1pk/4P3/6PK/8/8/8/8 w - -", Legal),
+
+        // the h2-pawn can only have h2 as destiny, which is occupied by a rook,
+        // a fact that the captures rule can only derive after the pawn is known
+        // to be on the board (which depends on the order of application of rules
+        // unless the missing counter is properly watched)
+        ("4kb1r/r1p2ppp/2np3n/pp2pb2/PBq1P3/RP1P1P2/6PR/1NQ1KB1R b - -", Illegal),
     ];
     test_legality(&positions)
 }

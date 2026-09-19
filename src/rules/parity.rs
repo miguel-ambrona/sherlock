@@ -19,6 +19,7 @@ use crate::{
 pub struct ParityRule {
     mobility_counter: usize,
     destinies_counter: usize,
+    missing_counter: usize,
 }
 
 impl Rule for ParityRule {
@@ -26,17 +27,20 @@ impl Rule for ParityRule {
         ParityRule {
             mobility_counter: 0,
             destinies_counter: 0,
+            missing_counter: 0,
         }
     }
 
     fn update(&mut self, analysis: &Analysis) {
         self.mobility_counter = analysis.mobility.counter();
         self.destinies_counter = analysis.destinies.counter();
+        self.missing_counter = analysis.missing.counter();
     }
 
     fn is_applicable(&self, analysis: &Analysis) -> bool {
         self.mobility_counter != analysis.mobility.counter()
             || self.destinies_counter != analysis.destinies.counter()
+            || self.missing_counter != analysis.missing.counter()
     }
 
     fn apply(&self, analysis: &mut Analysis) -> bool {
