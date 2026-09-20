@@ -1,7 +1,7 @@
 use std::fmt;
 
 use chess::{
-    get_bishop_rays, get_rank, get_rook_rays, BitBoard, Color, File, Piece, Square, ALL_COLORS,
+    get_bishop_moves, get_rank, get_rook_moves, BitBoard, Color, File, Piece, Square, ALL_COLORS,
     ALL_FILES, ALL_PIECES, ALL_SQUARES, EMPTY, NUM_COLORS, NUM_FILES, NUM_PIECES,
     NUM_PROMOTION_PIECES, NUM_SQUARES, PROMOTION_PIECES,
 };
@@ -434,13 +434,21 @@ impl Analysis {
     /// Update the information of missing pieces of the given color, with a
     /// given set of pieces that are certainly not missing.
     pub(crate) fn update_certainly_not_missing(&mut self, color: Color, value: BitBoard) -> bool {
-        self.missing.value[color.to_index()].remove(value)
+        let progress = self.missing.value[color.to_index()].remove(value);
+        if progress {
+            self.missing.counter += 1;
+        }
+        progress
     }
 
     /// Update the information of missing pieces of the given color, with a
     /// given set of pieces that are certainly missing.
     pub(crate) fn update_certainly_missing(&mut self, color: Color, value: BitBoard) -> bool {
-        self.missing.value[color.to_index()].add(value)
+        let progress = self.missing.value[color.to_index()].add(value);
+        if progress {
+            self.missing.counter += 1;
+        }
+        progress
     }
 
     /// Update the captures of the piece that started on the given square, with
@@ -491,26 +499,16 @@ impl Analysis {
     }
 
     /// Updates the mobility graph of the given piece and the given color, by
-    /// removing all the connections that pass through the given square.
+    /// removing all the connections into, from, or through the given squares.
     /// Returns a boolean value indicating whether the update changed anything.
-    pub(crate) fn remove_edges_passing_through_square(
+    pub(crate) fn remove_edges_touching(
         &mut self,
         piece: Piece,
         color: Color,
-        square: Square,
+        squares: BitBoard,
     ) -> bool {
-        let mut progress = false;
-        for source in get_rook_rays(square) | get_bishop_rays(square) {
-            for target in chess::line(square, source)
-                & !BitBoard::from_square(square)
-                & !BitBoard::from_square(source)
-            {
-                if (BitBoard::from_square(square) & chess::between(source, target)) != EMPTY {
-                    progress |= self.mobility.value[color.to_index()][piece.to_index()]
-                        .remove_edge(source, target);
-                }
-            }
-        }
+        let progress =
+            self.mobility.value[color.to_index()][piece.to_index()].remove_edges_touching(squares);
         if progress {
             self.mobility.counter += 1
         }
@@ -530,21 +528,40 @@ impl Analysis {
         square2: Square,
     ) -> bool {
         debug_assert_ne!(square1, square2);
-        let mut progress = false;
-        let squares = BitBoard::from_square(square1) | BitBoard::from_square(square2);
-        for source in chess::line(square1, square2) {
-            for target in chess::line(square1, square2) & !BitBoard::from_square(source) {
-                // the squares between source and target, including these
-                let segment = chess::between(source, target)
-                    | BitBoard::from_square(source)
-                    | BitBoard::from_square(target);
-                // if both square1 and square2 are included in the segment
-                if squares & segment == squares {
-                    progress |= self.mobility.value[color.to_index()][piece.to_index()]
-                        .remove_edge(source, target);
-                }
-            }
+        let line = chess::line(square1, square2);
+        if line == EMPTY {
+            return false;
         }
+        // The squares of the line on the far side of each square from the
+        // other one (that square included): a move passes through both
+        // squares iff it goes from one of these sides to the other.
+        let far_side = |square: Square, other: Square| {
+            let other_bb = BitBoard::from_square(other);
+            (get_rook_moves(square, other_bb) | get_bishop_moves(square, other_bb))
+                & line
+                & !chess::between(square, other)
+                & !other_bb
+                | BitBoard::from_square(square)
+        };
+        let progress = self.mobility.value[color.to_index()][piece.to_index()]
+            .remove_edges_between(far_side(square1, square2), far_side(square2, square1));
+        if progress {
+            self.mobility.counter += 1;
+        }
+        progress
+    }
+
+    /// Updates the mobility graph of the given piece and the given color, by
+    /// removing all the connections into the given squares.
+    /// Returns a boolean value indicating whether the update changed anything.
+    pub(crate) fn remove_edges_into(
+        &mut self,
+        piece: Piece,
+        color: Color,
+        squares: BitBoard,
+    ) -> bool {
+        let progress =
+            self.mobility.value[color.to_index()][piece.to_index()].remove_edges_into(squares);
         if progress {
             self.mobility.counter += 1
         }

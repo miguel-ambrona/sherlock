@@ -20,6 +20,7 @@ pub struct CapturesRule {
     destinies_counter: usize,
     origins_counter: usize,
     nb_captures_counter: usize,
+    missing_counter: usize,
 }
 
 impl Rule for CapturesRule {
@@ -31,6 +32,7 @@ impl Rule for CapturesRule {
             destinies_counter: 0,
             origins_counter: 0,
             nb_captures_counter: 0,
+            missing_counter: 0,
         }
     }
 
@@ -41,6 +43,7 @@ impl Rule for CapturesRule {
         self.destinies_counter = analysis.destinies.counter();
         self.origins_counter = analysis.origins.counter();
         self.nb_captures_counter = analysis.nb_captures.counter();
+        self.missing_counter = analysis.missing.counter();
     }
 
     fn is_applicable(&self, analysis: &Analysis) -> bool {
@@ -50,6 +53,7 @@ impl Rule for CapturesRule {
             || self.destinies_counter != analysis.destinies.counter()
             || self.origins_counter != analysis.origins.counter()
             || self.nb_captures_counter != analysis.nb_captures.counter()
+            || self.missing_counter != analysis.missing.counter()
     }
 
     fn apply(&self, analysis: &mut Analysis) -> bool {

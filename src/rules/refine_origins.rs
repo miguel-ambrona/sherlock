@@ -15,6 +15,7 @@ pub struct RefineOriginsRule {
     nb_captures_counter: usize,
     reachable_from_origin_counter: usize,
     pawn_capture_distances_counter: usize,
+    missing_counter: usize,
 }
 
 impl Rule for RefineOriginsRule {
@@ -24,6 +25,7 @@ impl Rule for RefineOriginsRule {
             nb_captures_counter: 0,
             reachable_from_origin_counter: 0,
             pawn_capture_distances_counter: 0,
+            missing_counter: 0,
         }
     }
 
@@ -32,6 +34,7 @@ impl Rule for RefineOriginsRule {
         self.nb_captures_counter = analysis.nb_captures.counter();
         self.reachable_from_origin_counter = analysis.reachable_from_origin.counter();
         self.pawn_capture_distances_counter = analysis.pawn_capture_distances.counter();
+        self.missing_counter = analysis.missing.counter();
     }
 
     fn is_applicable(&self, analysis: &Analysis) -> bool {
@@ -39,6 +42,7 @@ impl Rule for RefineOriginsRule {
             || self.nb_captures_counter != analysis.nb_captures.counter()
             || self.reachable_from_origin_counter != analysis.reachable_from_origin.counter()
             || self.pawn_capture_distances_counter != analysis.pawn_capture_distances.counter()
+            || self.missing_counter != analysis.missing.counter()
     }
 
     fn apply(&self, analysis: &mut Analysis) -> bool {
@@ -47,8 +51,15 @@ impl Rule for RefineOriginsRule {
         for color in ALL_COLORS {
             // We iterate up to k = 10, since that is the maximum number of candidate
             // origins of any piece after applying the origins rule.
+            //
+            // The pieces of a k-group are left out of the search for larger
+            // groups: a larger group containing them would only tell us what
+            // its other pieces already tell us on their own (once the group's
+            // origins have been removed from every other piece, those other
+            // pieces form a group by themselves), and the rule is applied
+            // again whenever the origins change.
+            let mut iter = *analysis.board.color_combined(color);
             for k in 1..=10 {
-                let mut iter = *analysis.board.color_combined(color);
                 loop {
                     match find_k_group(k, &analysis.origins.value, iter) {
                         None => break,

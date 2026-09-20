@@ -7,7 +7,8 @@
 //! that remain.
 
 use chess::{
-    get_pawn_attacks, get_rank, BitBoard, Color, Piece, Square, ALL_SQUARES, EMPTY, NUM_SQUARES,
+    get_bishop_moves, get_pawn_attacks, get_pawn_quiets, get_rank, get_rook_moves, BitBoard, Color,
+    Piece, Square, ALL_SQUARES, EMPTY, NUM_SQUARES,
 };
 
 use super::moves_on_empty_board;
@@ -16,6 +17,8 @@ use super::moves_on_empty_board;
 /// as the squares reachable from each square, by a quiet move or by a
 /// capture.
 pub struct MobilityGraph {
+    piece: Piece,
+    color: Color,
     quiet: [BitBoard; NUM_SQUARES],
     captures: [BitBoard; NUM_SQUARES],
 }
@@ -26,6 +29,8 @@ impl MobilityGraph {
     /// way that changes its route).
     pub fn init(piece: Piece, color: Color) -> Self {
         let mut graph = MobilityGraph {
+            piece,
+            color,
             quiet: [EMPTY; NUM_SQUARES],
             captures: [EMPTY; NUM_SQUARES],
         };
@@ -47,12 +52,14 @@ impl MobilityGraph {
     }
 
     /// Whether there exists a move between the two given squares.
+    #[cfg(test)]
     pub fn exists_edge(&self, source: Square, target: Square) -> bool {
         self.moves_from(source) & BitBoard::from_square(target) != EMPTY
     }
 
     /// Makes sure the move between the given squares disappears from the
     /// graph. Returns `true` iff this operation modifies the graph.
+    #[cfg(test)]
     pub fn remove_edge(&mut self, source: Square, target: Square) -> bool {
         let existed = self.exists_edge(source, target);
         let target = BitBoard::from_square(target);
@@ -73,11 +80,62 @@ impl MobilityGraph {
     /// Makes sure the graph does not have moves to the given square.
     /// Returns `true` iff this operation modifies the graph.
     pub fn remove_incoming_edges(&mut self, target: Square) -> bool {
+        self.remove_edges_into(BitBoard::from_square(target))
+    }
+
+    /// Makes sure the graph does not have moves to any of the given squares.
+    /// Returns `true` iff this operation modifies the graph.
+    pub fn remove_edges_into(&mut self, targets: BitBoard) -> bool {
         let mut existed = false;
-        for source in ALL_SQUARES {
-            existed |= self.remove_edge(source, target);
+        for source in 0..NUM_SQUARES {
+            existed |= (self.quiet[source] | self.captures[source]) & targets != EMPTY;
+            self.quiet[source] &= !targets;
+            self.captures[source] &= !targets;
         }
         existed
+    }
+
+    /// Makes sure the graph does not have moves from any of the `sources` to
+    /// any of the `targets`, nor the other way around.
+    /// Returns `true` iff this operation modifies the graph.
+    pub fn remove_edges_between(&mut self, sources: BitBoard, targets: BitBoard) -> bool {
+        let mut existed = false;
+        for (from, to) in [(sources, targets), (targets, sources)] {
+            for source in from {
+                let i = source.to_index();
+                existed |= (self.quiet[i] | self.captures[i]) & to != EMPTY;
+                self.quiet[i] &= !to;
+                self.captures[i] &= !to;
+            }
+        }
+        existed
+    }
+
+    /// Makes sure no move goes into, out of, or through any of the given
+    /// squares. Returns `true` iff this operation modifies the graph.
+    pub fn remove_edges_touching(&mut self, squares: BitBoard) -> bool {
+        let mut modified = false;
+        for source in ALL_SQUARES {
+            let i = source.to_index();
+            let (quiet, captures) = if BitBoard::from_square(source) & squares != EMPTY {
+                (EMPTY, EMPTY)
+            } else {
+                let allowed = match self.piece {
+                    Piece::Rook => get_rook_moves(source, squares),
+                    Piece::Bishop => get_bishop_moves(source, squares),
+                    Piece::Queen => {
+                        get_rook_moves(source, squares) | get_bishop_moves(source, squares)
+                    }
+                    Piece::Pawn => get_pawn_quiets(source, self.color, squares),
+                    Piece::King | Piece::Knight => !EMPTY,
+                } & !squares;
+                (self.quiet[i] & allowed, self.captures[i] & !squares)
+            };
+            modified |= quiet != self.quiet[i] || captures != self.captures[i];
+            self.quiet[i] = quiet;
+            self.captures[i] = captures;
+        }
+        modified
     }
 
     /// The squares from which there exists a move to the given `target`.
@@ -160,50 +218,60 @@ impl MobilityGraph {
         // The routes of interest are those of at most `allowed_nb_captures`
         // captures, so it is enough to know, for every square and every
         // number of captures spent to get there, the squares that all such
-        // routes capture on: `forced[spent][square]`, `None` for the squares
-        // that no such route reaches.
-        let budget = allowed_nb_captures as usize;
-        let mut forced: Vec<[Option<BitBoard>; NUM_SQUARES]> =
-            vec![[None; NUM_SQUARES]; budget + 1];
-        forced[0][source.to_index()] = Some(EMPTY);
+        // routes capture on: `current[square]` for the level being explored,
+        // `None` for the squares that no such route reaches. A square is
+        // forced for a target when the routes force it whatever the number
+        // of captures they spend, so the levels are combined by intersection
+        // into `forced` as they complete.
+        let budget = (allowed_nb_captures as usize).min(UNREACHABLE as usize - 1);
+        let mut forced = [None; NUM_SQUARES];
+        let mut current = [None; NUM_SQUARES];
+        current[source.to_index()] = Some(EMPTY);
+        // the squares reached at the current level
+        let mut reached = BitBoard::from_square(source);
         for spent in 0..=budget {
-            let mut pending = ALL_SQUARES
-                .into_iter()
-                .filter(|square| forced[spent][square.to_index()].is_some())
-                .fold(EMPTY, |acc, square| acc | BitBoard::from_square(square));
             // Quiet moves keep the number of captures, so the routes that
             // spend `spent` of them are complete once these are exhausted.
+            let mut pending = reached;
             while pending != EMPTY {
                 let square = pending.to_square();
                 pending &= !BitBoard::from_square(square);
-                let routes = forced[spent][square.to_index()].unwrap();
+                let routes = current[square.to_index()].unwrap();
                 for target in self.quiet[square.to_index()] {
-                    if update(&mut forced[spent][target.to_index()], routes) {
+                    if update(&mut current[target.to_index()], routes) {
                         pending |= BitBoard::from_square(target);
+                        reached |= BitBoard::from_square(target);
                     }
                 }
+            }
+            for square in reached {
+                update(
+                    &mut forced[square.to_index()],
+                    current[square.to_index()].unwrap(),
+                );
             }
             if spent == budget {
                 break;
             }
-            for square in ALL_SQUARES {
-                if let Some(routes) = forced[spent][square.to_index()] {
-                    for target in self.captures[square.to_index()] {
-                        let routes = routes | BitBoard::from_square(target);
-                        update(&mut forced[spent + 1][target.to_index()], routes);
-                    }
+            let mut next = [None; NUM_SQUARES];
+            let mut next_reached = EMPTY;
+            for square in reached {
+                let routes = current[square.to_index()].unwrap();
+                for target in self.captures[square.to_index()] {
+                    update(
+                        &mut next[target.to_index()],
+                        routes | BitBoard::from_square(target),
+                    );
+                    next_reached |= BitBoard::from_square(target);
                 }
             }
+            if next_reached == EMPTY {
+                break;
+            }
+            current = next;
+            reached = next_reached;
         }
-        // A square is forced for a target when the routes force it whatever
-        // the number of captures they spend.
-        core::array::from_fn(|square| {
-            forced
-                .iter()
-                .filter_map(|level| level[square])
-                .reduce(|forced, routes| forced & routes)
-                .unwrap_or(EMPTY)
-        })
+        core::array::from_fn(|square| forced[square].unwrap_or(EMPTY))
     }
 }
 

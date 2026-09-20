@@ -30,14 +30,13 @@ impl Rule for PawnOn2ndRankRule {
         let mut progress = false;
 
         for color in ALL_COLORS {
-            for square in analysis.board.color_combined(color)
+            let attacked = (analysis.board.color_combined(color)
                 & analysis.board.pieces(Piece::Pawn)
-                & get_rank(color.to_second_rank())
-            {
-                for attacked_sq in get_pawn_attacks(square, color, !EMPTY) {
-                    progress |= analysis.remove_incoming_edges(Piece::King, !color, attacked_sq);
-                }
-            }
+                & get_rank(color.to_second_rank()))
+            .fold(EMPTY, |acc, square| {
+                acc | get_pawn_attacks(square, color, !EMPTY)
+            });
+            progress |= analysis.remove_edges_into(Piece::King, !color, attacked);
         }
 
         progress
