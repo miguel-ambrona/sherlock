@@ -456,6 +456,14 @@ fn test_nb_retractions() {
         // pawn can capture it en passant
         ("rnbqkbnr/pppppppp/8/8/7P/8/PPPPPPP1/RNBQKBNR b KQkq -", 6),
         ("rnbqkbnr/pppppp1p/8/8/6pP/8/PPPPPPP1/RNBQKBNR b KQkq -", 5),
+        // a rook that may still castle has not moved, even when checking:
+        // another piece must have moved off its line (never a rook or a
+        // queen, which would have been checking from there)
+        ("4k2r/8/7K/8/8/8/8/8 w k -", 0),
+        ("4k2r/8/7K/8/8/8/8/8 w - -", 10),
+        ("4k2r/1r6/7K/8/8/8/8/8 w k -", 0),
+        ("4k1br/8/7K/8/8/8/8/8 w k -", 5),
+        ("4k2r/8/6qK/7Q/8/8/8/8 w k -", 0),
     ]
     .iter()
     .for_each(|(fen, n)| {
