@@ -69,8 +69,10 @@ pub trait PieceType {
             }
         }
 
-        if T::NB_CHECKERS == 1 && checkers & pieces != EMPTY {
+        if T::NB_CHECKERS == 1 && checkers & pieces & !castling_rooks != EMPTY {
             // a piece of our own type is checking, thus it must be the retracting piece
+            // (unless it is a rook that may still castle: then no piece of our type
+            // has moved, as none could have discovered the check from its line)
             let src = checkers.to_square();
             let check_mask =
                 Self::pseudo_legals(opp_ksq, retracting_color, *combined & !checkers, !EMPTY);
@@ -125,8 +127,11 @@ pub trait PieceType {
         }
 
         // double checks
-        if T::NB_CHECKERS == 2 && checkers & pieces != EMPTY && checkers & !pieces != EMPTY {
-            let src = (checkers & pieces & !castling_rooks).to_square();
+        if T::NB_CHECKERS == 2
+            && checkers & pieces & !castling_rooks != EMPTY
+            && checkers & !pieces != EMPTY
+        {
+            let src = (checkers & pieces).to_square();
             let targets = between((checkers & !pieces).to_square(), opp_ksq)
                 & Self::pseudo_legals(src, retracting_color, *combined, !combined & mask);
             if targets != EMPTY {

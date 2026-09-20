@@ -110,6 +110,13 @@ fn test_legality_misc() {
         // to be on the board (which depends on the order of application of rules
         // unless the missing counter is properly watched)
         ("4kb1r/r1p2ppp/2np3n/pp2pb2/PBq1P3/RP1P1P2/6PR/1NQ1KB1R b - -", Illegal),
+
+        // a rook that may still castle has not moved, even when checking
+        ("4k2r/8/7K/8/8/8/8/8 w k -", Illegal),
+        ("4k2r/8/7K/8/8/8/8/8 w - -", Legal),
+        ("4k1br/8/7K/8/8/8/8/8 w k -", Legal),
+        // (a double check with it used to crash the retraction generator)
+        ("4k2r/8/6qK/7Q/8/8/8/8 w k -", Illegal),
     ];
     test_legality(&positions)
 }
