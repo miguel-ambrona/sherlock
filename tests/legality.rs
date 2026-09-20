@@ -117,6 +117,10 @@ fn test_legality_misc() {
         ("4k1br/8/7K/8/8/8/8/8 w k -", Legal),
         // (a double check with it used to crash the retraction generator)
         ("4k2r/8/6qK/7Q/8/8/8/8 w k -", Illegal),
+        // a discovered check cannot be given by a piece that was checking
+        // from the ray itself (a rook on the orthogonal ray of a queen)
+        ("k5Bq/6P1/8/8/8/8/r7/7K w - -", Illegal),
+        ("k5Bq/6P1/8/8/8/8/8/1b5K w - -", Legal),
     ];
     test_legality(&positions)
 }

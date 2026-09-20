@@ -108,11 +108,15 @@ pub trait PieceType {
 
         if T::NB_CHECKERS == 1 && Self::into_piece() != Piece::Queen && checkers & pieces == EMPTY {
             // a different piece is checking, thus we must have moved from
-            // the checking ray (if we are not a queen)
+            // the checking ray (if we are not a queen), but not from a square
+            // where we would have been checking ourselves (e.g. a rook on the
+            // orthogonal ray of a queen)
+            let check_mask = Self::pseudo_legals(opp_ksq, retracting_color, *combined, !EMPTY);
             for src in pieces & !castling_rooks {
                 let targets =
                     Self::pseudo_legals(src, retracting_color, *combined, !combined & mask)
-                        & between(checkers.to_square(), opp_ksq);
+                        & between(checkers.to_square(), opp_ksq)
+                        & !check_mask;
                 if targets != EMPTY {
                     unsafe {
                         movelist.push_unchecked(SourceAndTargets::new(
@@ -132,8 +136,13 @@ pub trait PieceType {
             && checkers & !pieces != EMPTY
         {
             let src = (checkers & pieces).to_square();
+            // (we came from the other checker's ray, discovering its check
+            // while giving ours, so not from a square where we were checking
+            // already)
+            let check_mask = Self::pseudo_legals(opp_ksq, retracting_color, *combined, !EMPTY);
             let targets = between((checkers & !pieces).to_square(), opp_ksq)
-                & Self::pseudo_legals(src, retracting_color, *combined, !combined & mask);
+                & Self::pseudo_legals(src, retracting_color, *combined, !combined & mask)
+                & !check_mask;
             if targets != EMPTY {
                 unsafe {
                     movelist.push_unchecked(SourceAndTargets::new(
@@ -439,8 +448,13 @@ impl PieceType for KnightType {
         // double checks
         if T::NB_CHECKERS == 2 && checkers & pieces != EMPTY && checkers & !pieces != EMPTY {
             let src = (checkers & pieces).to_square();
+            // (we came from the other checker's ray, discovering its check
+            // while giving ours, so not from a square where we were checking
+            // already)
+            let check_mask = Self::pseudo_legals(opp_ksq, retracting_color, *combined, !EMPTY);
             let targets = between((checkers & !pieces).to_square(), opp_ksq)
-                & Self::pseudo_legals(src, retracting_color, *combined, !combined & mask);
+                & Self::pseudo_legals(src, retracting_color, *combined, !combined & mask)
+                & !check_mask;
             if targets != EMPTY {
                 unsafe {
                     movelist.push_unchecked(SourceAndTargets::new(
