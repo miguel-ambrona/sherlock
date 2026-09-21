@@ -464,6 +464,11 @@ fn test_nb_retractions() {
         ("4k2r/1r6/7K/8/8/8/8/8 w k -", 0),
         ("4k1br/8/7K/8/8/8/8/8 w k -", 5),
         ("4k2r/8/6qK/7Q/8/8/8/8 w k -", 0),
+        // a discovered check cannot be given by a piece that was checking
+        // from the ray itself: a rook on the orthogonal ray of a queen
+        ("k5Bq/6P1/8/8/8/8/r7/7K w - -", 0),
+        ("k5Bq/6P1/8/8/8/8/8/1b5K w - -", 5),
+        ("2brkBRB/1p1p1ppK/8/6N1/1r6/6Pq/1PPPNPrr/3bRBbN w - -", 10),
     ]
     .iter()
     .for_each(|(fen, n)| {
