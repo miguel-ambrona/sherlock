@@ -121,6 +121,15 @@ fn test_legality_misc() {
         // from the ray itself (a rook on the orthogonal ray of a queen)
         ("k5Bq/6P1/8/8/8/8/r7/7K w - -", Illegal),
         ("k5Bq/6P1/8/8/8/8/8/1b5K w - -", Legal),
+
+        // retro-stalemate pressure - Miguel Ambrona & Andrew Buchanan,
+        // Problemas 48, 2024 (P1423547): the last move was f7-f5, so the
+        // position is illegal without the en-passant flag. After f6-f5
+        // instead, the black queen, captured on g5, would have to be back on
+        // d8 before c7xNb6, and the tempi do not add up (parity cannot tell:
+        // pieces are missing on both sides)
+        ("N1b1kn1r/pp1pp1pp/1p6/5pP1/8/P6n/1PPPP1PP/R1B1K2R w KQk -", TBD),
+        ("N1b1kn1r/pp1pp1pp/1p6/5pP1/8/P6n/1PPPP1PP/R1B1K2R w KQk f6", Legal),
     ];
     test_legality(&positions)
 }
